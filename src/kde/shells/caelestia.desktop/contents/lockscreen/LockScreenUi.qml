@@ -26,7 +26,10 @@ Item {
     ServiceRef { service: Memory }
     ServiceRef { service: Storage }
 
-    readonly property real centerScale: Math.min(1, Math.min(width, height) / 1440)
+    readonly property real lockHeight: Math.min(width, height)
+    readonly property real lockLong: lockHeight * 0.7 * (16.0 / 9.0)
+    readonly property real lockShort: lockHeight * 0.7
+    readonly property real centerScale: Math.min(1, lockHeight / 1440)
     readonly property real centerWidth: 600 * centerScale
     readonly property bool isPortrait: height > width * 1.2
     readonly property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
@@ -339,8 +342,8 @@ Item {
         Item {
             id: landscapeContent
             anchors.centerIn: parent
-            width: parent.width * 0.85
-            height: parent.height * 0.85
+            width: lockScreenUi.lockLong
+            height: lockScreenUi.lockShort
             visible: !lockScreenUi.isPortrait
 
             ShaderEffectSource {
@@ -362,22 +365,20 @@ Item {
                 id: lockBg
                 anchors.fill: parent
                 color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.45)
-                radius: 32 * lockScreenUi.centerScale
-                border.width: 1
-                border.color: Qt.rgba(255, 255, 255, 0.05)
+                radius: 42 * (lockScreenUi.lockHeight / 1080)
             }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 40 * lockScreenUi.centerScale
-                spacing: 40 * lockScreenUi.centerScale
+                anchors.margins: 16 * (lockScreenUi.lockHeight / 1080)
+                spacing: 40 * (lockScreenUi.lockHeight / 1080)
 
                 // Left Column
                 ColumnLayout {
                     Layout.alignment: Qt.AlignTop
-                    Layout.preferredWidth: lockScreenUi.centerWidth * 0.6
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 20 * lockScreenUi.centerScale
+                    spacing: 16 * lockScreenUi.centerScale
 
                     WeatherCard {
                         Layout.fillWidth: true
@@ -424,7 +425,9 @@ Item {
                 // Center Column
                 ColumnLayout {
                     Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-                    Layout.preferredWidth: lockScreenUi.centerWidth * 1.1
+                    Layout.preferredWidth: lockScreenUi.centerWidth
+                    Layout.fillWidth: false
+                    Layout.fillHeight: true
                     spacing: 20 * lockScreenUi.centerScale
 
                     ClockWidget {
@@ -527,7 +530,7 @@ Item {
                 // Right Column
                 ColumnLayout {
                     Layout.alignment: Qt.AlignTop
-                    Layout.preferredWidth: lockScreenUi.centerWidth * 0.45
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 16 * lockScreenUi.centerScale
 
@@ -567,7 +570,7 @@ Item {
         // ── Portrait Layout ──
         ColumnLayout {
             anchors.centerIn: parent
-            width: parent.width * 0.9
+            width: Math.min(parent.width * 0.9, lockScreenUi.lockShort)
             spacing: 20 * lockScreenUi.centerScale
             visible: lockScreenUi.isPortrait
 
