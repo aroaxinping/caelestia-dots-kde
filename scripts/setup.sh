@@ -167,12 +167,19 @@ tui_version() {
     tr -d '[:space:]' < "$BUNDLE_DIR/installer/tui.version" 2>/dev/null || true
 }
 
-# Try to fetch a prebuilt installer binary from GitHub Releases so we don't
-# have to compile the TUI on the user's machine. The binary is built by
-# .github/workflows/prebuilt-artifacts.yml and uploaded to the fixed
-# `caelestia-bin-repo` release tag. Falls back to compiling when unavailable
-# (no curl, offline, unsupported arch), when it does not match this checkout's
-# TUI version, or when forced via env var.
+# The release tag this checkout corresponds to. The prebuilt installer is
+# attached to the release for this VERSION, not the fixed caelestia-bin-repo
+# tag (that tag now only carries the binary pacman repo).
+release_tag() {
+    sed -nE 's/^[[:space:]]*VERSION=//p' "$BUNDLE_DIR/.github/version.env" 2>/dev/null | tr -d '[:space:]'
+}
+
+# Try to fetch a prebuilt installer binary from the version release so we
+# don't have to compile the TUI on the user's machine. The binary is built by
+# the build-installer job in .github/workflows/version-release.yml and
+# attached to the release tagged with this checkout's VERSION. Falls back to
+# compiling when unavailable (no curl, offline, unsupported arch), when it
+# does not match this checkout's TUI version, or when forced via env var.
 try_download_prebuilt_installer() {
     local arch
     arch="$(uname -m)"
@@ -181,15 +188,16 @@ try_download_prebuilt_installer() {
         *) return 1 ;;
     esac
 
-    local version tmp_bin url
+    local version tag tmp_bin url
     version="$(tui_version)"
+    tag="$(release_tag)"
     # The release asset name embeds the TUI data version, so a matching
     # binary is downloaded directly and a stale/old release simply 404s.
     # This never executes an unknown binary, which is what hung the old
     # "--version" check (old builds launched the full TUI instead).
-    [[ -n "$version" ]] || return 1
+    [[ -n "$version" && -n "$tag" ]] || return 1
     tmp_bin="$(mktemp)"
-    url="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/caelestia-bin-repo/caelestia-install-${arch}-v${version}"
+    url="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/${tag}/caelestia-install-${arch}-v${version}"
     if curl -fsSL --connect-timeout 10 --max-time 30 "$url" -o "$tmp_bin" 2>/dev/null; then
         chmod +x "$tmp_bin"
         printf '%s\n' "$tmp_bin"
