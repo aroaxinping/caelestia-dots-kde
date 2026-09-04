@@ -245,8 +245,8 @@ shell_release_tag() {
 
 # Download the prebuilt shell tarball from the version release and extract it.
 # The tarball has two top-level trees: lib/ (compiled QML plugins and the
-# version binary) into $HOME/.local, and config/quickshell/caelestia/ (the
-# shell QML source with the install-time shell.qml patch) into $HOME/.config.
+# version binary) into $HOME/.local, and quickshell/caelestia/ (the shell QML
+# source with the install-time shell.qml patch) into $HOME/.config.
 try_download_prebuilt_shell() {
     local arch qt_abi tag tmp_archive url
     arch="$(uname -m)"
@@ -267,7 +267,7 @@ try_download_prebuilt_shell() {
         rm -f "$tmp_archive"
         return 1
     fi
-    if ! tar -C "$HOME/.config" -xzf "$tmp_archive" config 2>/dev/null; then
+    if ! tar -C "$HOME/.config" -xzf "$tmp_archive" quickshell 2>/dev/null; then
         rm -f "$tmp_archive"
         return 1
     fi
