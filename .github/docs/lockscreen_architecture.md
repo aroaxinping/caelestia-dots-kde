@@ -48,7 +48,8 @@ src/kde/shells/caelestia.desktop/
 The Caelestia lock screen brings the modern Quickshell lockscreen design into native KDE Plasma 6:
 
 1. **Frosted-Glass Blur Textures:**
-   - The underlying desktop wallpaper is captured via `ShaderEffectSource` and blurred with a high-radius `FastBlur` (radius 64).
+   - Because KWin Wayland does not apply compositor background blur to out-of-process greeter windows, Caelestia utilizes KDE's greeter wallpaper blurring technique by sourcing the in-process `wallpaper` item directly through `FastBlur` (radius 64).
+   - The blurred wallpaper is mapped onto the lockscreen container (`lockBg`) and layout regions using a live `ShaderEffectSource` clipped with `OpacityMask` matching the container's corner radius (`bgRadius`).
    - Card widgets use translucent surface backgrounds (`Qt.rgba(..., 0.55)`), allowing the vibrant blurred wallpaper gradients and colors to illuminate the widgets.
 
 2. **Concentric Corner Radii:**

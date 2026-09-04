@@ -66,7 +66,7 @@ kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelest
 /usr/lib/kscreenlocker_greet --testing
 ```
 
-- **Styling**: Widgets use frosted-glass blur textures with translucent backgrounds (`Qt.rgba(..., 0.55)`) and concentric corner radii (`cardRadius = bgRadius - bgMargin = 26px`).
+- **Styling**: Uses frosted-glass blur textures via native wallpaper `FastBlur` with translucent backgrounds (`Qt.rgba(..., 0.55)`) and concentric corner radii (`cardRadius = bgRadius - bgMargin = 26px`).
 - **Avatars**: The greeter checks `~/.face` first and dynamically falls back to the system profile picture (`kscreenlocker_userImage`) and the default user icon.
 
 ### For C++ plugin changes

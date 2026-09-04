@@ -134,6 +134,7 @@ if [[ -f "$WALLPAPER_PATH" ]]; then
     # the KDE lock screen so both match out of the box, even before the
     # lockscreen proxy takes over.
     if command -v kwriteconfig6 >/dev/null 2>&1; then
+        kwriteconfig6 --file kscreenlockerrc --group Greeter --key WallpaperPlugin "org.kde.image" 2>/dev/null || true
         kwriteconfig6 --file kscreenlockerrc --group Greeter --group Wallpaper --group org.kde.image --group General --key Image "file://$WALLPAPER_PATH" 2>/dev/null || true
     fi
 

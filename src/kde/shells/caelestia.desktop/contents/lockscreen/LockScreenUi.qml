@@ -316,7 +316,13 @@ Item {
         onFinished: lockScreenUi.authMessage = ""
     }
 
-    Item { id: bgItem; anchors.fill: parent; children: [wallpaper] }
+    FastBlur {
+        id: wallpaperBlur
+        anchors.fill: parent
+        source: wallpaper
+        radius: 64
+        visible: false
+    }
 
     FocusScope {
         id: lockScreenRoot
@@ -361,25 +367,32 @@ Item {
             height: lockScreenUi.lockShort
             visible: !lockScreenUi.isPortrait
 
-            ShaderEffectSource {
-                id: bgSource
-                anchors.fill: lockBg
-                sourceItem: bgItem
-                sourceRect: Qt.rect(landscapeContent.x, landscapeContent.y, landscapeContent.width, landscapeContent.height)
-            }
             Item {
                 anchors.fill: lockBg
                 layer.enabled: true
                 layer.effect: OpacityMask {
                     maskSource: Rectangle { width: lockBg.width; height: lockBg.height; radius: lockBg.radius }
                 }
-                FastBlur { anchors.fill: parent; source: bgSource; radius: 64 }
-                Rectangle { anchors.fill: parent; color: lockScreenUi.clSurface; opacity: 0.3 }
+
+                ShaderEffectSource {
+                    anchors.fill: parent
+                    sourceItem: wallpaperBlur
+                    sourceRect: Qt.rect(landscapeContent.x, landscapeContent.y, landscapeContent.width, landscapeContent.height)
+                    live: true
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
+                }
             }
+
             Rectangle {
                 id: lockBg
                 anchors.fill: parent
-                color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
+                color: "transparent"
+                border.color: Qt.rgba(lockScreenUi.clSurfaceVariantFg.r, lockScreenUi.clSurfaceVariantFg.g, lockScreenUi.clSurfaceVariantFg.b, 0.12)
+                border.width: 1
                 radius: lockScreenUi.bgRadius
             }
 
@@ -603,11 +616,47 @@ Item {
         }
 
         // ── Portrait Layout ──
-        ColumnLayout {
+        Item {
+            id: portraitContent
             anchors.centerIn: parent
             width: Math.min(parent.width * 0.9, lockScreenUi.lockShort)
-            spacing: 20 * lockScreenUi.centerScale
+            height: portraitLayout.implicitHeight + 48 * lockScreenUi.centerScale
             visible: lockScreenUi.isPortrait
+
+            Item {
+                anchors.fill: portraitBg
+                layer.enabled: true
+                layer.effect: OpacityMask {
+                    maskSource: Rectangle { width: portraitBg.width; height: portraitBg.height; radius: lockScreenUi.bgRadius }
+                }
+
+                ShaderEffectSource {
+                    anchors.fill: parent
+                    sourceItem: wallpaperBlur
+                    sourceRect: Qt.rect(portraitContent.x, portraitContent.y, portraitContent.width, portraitContent.height)
+                    live: true
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
+                }
+            }
+
+            Rectangle {
+                id: portraitBg
+                anchors.fill: parent
+                color: "transparent"
+                border.color: Qt.rgba(lockScreenUi.clSurfaceVariantFg.r, lockScreenUi.clSurfaceVariantFg.g, lockScreenUi.clSurfaceVariantFg.b, 0.12)
+                border.width: 1
+                radius: lockScreenUi.bgRadius
+            }
+
+            ColumnLayout {
+                id: portraitLayout
+                anchors.centerIn: parent
+                width: parent.width - 32 * lockScreenUi.centerScale
+                spacing: 20 * lockScreenUi.centerScale
 
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
@@ -747,6 +796,7 @@ Item {
                 }
             }
         }
+    }
     }
 
     RowLayout {
