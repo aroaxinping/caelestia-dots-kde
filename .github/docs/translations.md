@@ -88,6 +88,40 @@ The repository needs two secrets for this, both from a Crowdin account with at
 least Manager rights on the project: `CROWDIN_PROJECT_ID` and
 `CROWDIN_PERSONAL_TOKEN`. The job is skipped on forks, where they do not exist.
 
+### First run
+
+Crowdin starts empty. A run that only uploads sources and then downloads would
+export every target file untranslated and open a pull request replacing the
+Turkish catalogue with a blank one, so the committed translations have to be
+seeded first: trigger the workflow by hand once with **Also upload the committed
+catalogues** enabled. Every run after that leaves it off, so translations edited
+in Crowdin are not overwritten by whatever happens to be committed here.
+
+Delete the `i18n/crowdin` branch before seeding if one is already there. The
+branch is where the workflow accumulates downloaded translations, and one left
+over from an earlier run carries that run's files into the next pull request.
+
+Only languages someone has actually translated are exported
+(`skip_untranslated_files`). Without it Crowdin writes a file for every target
+language on the project, and a catalogue of nothing but untranslated entries
+still compiles and still appears in the language picker as a language that
+renders in English.
+
+English must not be added as a target language on the project. It is the source,
+so there is nothing to translate into it: Crowdin lists it at 0% forever, and
+its export would be named `caelestia_en.ts` -- the generated source catalogue,
+which is ignored, so it would be quietly discarded on every run. If the project
+shows English (or English, United States) among the target languages, remove it
+under Settings -> Languages.
+
+Catalogues are named by the two-letter code, so Turkish is `caelestia_tr.ts`.
+Two variants of one language -- `pt-BR` and `pt-PT`, `zh-CN` and `zh-TW` --
+would both want the bare code; give them explicit names through
+`languages_mapping` in `crowdin.yml` if both are ever translated.
+
+`CROWDIN_PROJECT_ID` is the numeric project ID from Crowdin's project settings,
+not the `caelestia-kde` identifier that appears in the URL and the badge.
+
 Create the token under Account Settings -> API with **Granular access**, limited
 to this project and to the scopes the synchronization needs. A Crowdin personal
 token otherwise carries its owner's permissions across every project they can
