@@ -28,6 +28,7 @@ Rectangle {
     radius: cardRadius
     color: clSurfaceContainer
 
+    // Album art background — only shown when media is playing
     Item {
         id: bgContainer
         anchors.fill: parent
@@ -59,15 +60,20 @@ Rectangle {
         layer.enabled: true
     }
 
+    // Single layout always present — mirrors Quickshell Media.qml structure.
+    // When no media is playing the content dims and shows placeholder strings.
     ColumnLayout {
         anchors.centerIn: parent
         width: parent.width * 0.9
         spacing: 8
-        visible: root.hasMedia
+        // Dim the whole layout while no media is active (matches Quickshell disabled state)
+        opacity: root.hasMedia ? 1.0 : 0.55
+        Behavior on opacity { NumberAnimation { duration: 300 } }
 
         Text {
             Layout.fillWidth: true
-            text: root.multiplex.title || ""
+            // Quickshell: Players.active?.trackTitle ?? "Nothing playing"
+            text: root.hasMedia ? (root.multiplex.title || "") : qsTr("Nothing playing")
             font { pixelSize: 18; family: "Outfit"; weight: Font.Medium }
             color: root.clSurfaceFg
             elide: Text.ElideRight
@@ -76,7 +82,8 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: root.multiplex.artist || ""
+            // Quickshell: Players.active?.trackArtist ?? "Try playing some music!"
+            text: root.hasMedia ? (root.multiplex.artist || "") : qsTr("Try playing some music!")
             font { pixelSize: 15; family: "Outfit" }
             color: root.clSurfaceVariantFg
             elide: Text.ElideRight
@@ -88,73 +95,71 @@ Rectangle {
             spacing: 16
             Layout.topMargin: 12
 
+            // Previous — Quickshell: disabled when !canGoPrevious
             Rectangle {
                 width: 38
                 height: 38
                 radius: 19
-                color: Qt.rgba(255, 255, 255, 0.1)
+                color: Qt.rgba(255, 255, 255, root.hasMedia ? 0.1 : 0.06)
 
                 Text {
                     anchors.centerIn: parent
                     text: "skip_previous"
                     font.family: "Material Symbols Rounded"
                     font.pixelSize: 22
-                    color: root.clSurfaceFg
+                    color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    enabled: root.hasMedia
                     onClicked: root.previousRequested()
                 }
             }
 
+            // Play/Pause — pill shape, primary colour when active
             Rectangle {
                 width: 66
                 height: 42
                 radius: 21
-                color: root.clPrimary
+                color: root.hasMedia ? root.clPrimary : Qt.rgba(255, 255, 255, 0.08)
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.multiplex.status === "Playing" ? "pause" : "play_arrow"
+                    text: (root.hasMedia && root.multiplex.status === "Playing") ? "pause" : "play_arrow"
                     font.family: "Material Symbols Rounded"
                     font.pixelSize: 26
-                    color: root.clSurface
+                    color: root.hasMedia ? root.clSurface : root.clSurfaceVariantFg
                 }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    enabled: root.hasMedia
                     onClicked: root.playPauseRequested()
                 }
             }
 
+            // Next — Quickshell: disabled when !canGoNext
             Rectangle {
                 width: 38
                 height: 38
                 radius: 19
-                color: Qt.rgba(255, 255, 255, 0.1)
+                color: Qt.rgba(255, 255, 255, root.hasMedia ? 0.1 : 0.06)
 
                 Text {
                     anchors.centerIn: parent
                     text: "skip_next"
                     font.family: "Material Symbols Rounded"
                     font.pixelSize: 22
-                    color: root.clSurfaceFg
+                    color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    enabled: root.hasMedia
                     onClicked: root.nextRequested()
                 }
             }
         }
-    }
-
-    Text {
-        anchors.centerIn: parent
-        text: "No Media Playing"
-        font { pixelSize: 16; family: "Outfit" }
-        color: root.clSurfaceVariantFg
-        visible: !root.hasMedia
     }
 }

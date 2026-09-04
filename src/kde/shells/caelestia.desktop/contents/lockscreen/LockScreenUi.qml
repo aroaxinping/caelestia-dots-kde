@@ -410,8 +410,6 @@ Item {
 
                     WeatherCard {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.preferredHeight: 1
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         weatherInfo: weatherLoader.weatherInfo
@@ -423,8 +421,6 @@ Item {
 
                     CaelestiafetchCard {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.preferredHeight: 1
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         fetchInfo: fetchLoader.fetchInfo
@@ -441,7 +437,6 @@ Item {
                     MediaCard {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.preferredHeight: 1
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         multiplex: lockScreenUi.liveMedia

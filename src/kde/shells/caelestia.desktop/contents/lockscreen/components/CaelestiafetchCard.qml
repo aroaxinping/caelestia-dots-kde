@@ -25,6 +25,9 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius * centerScale
     color: clSurfaceContainer
+    // Shrinks-to-fit: titlebar (36) + logo (180) + dots (28) + 2×spacing (12) + 2×margin (18)
+    // Matches Quickshell's Fetch.qml content-driven height
+    implicitHeight: (36 + 180 + 28 + 2 * 12 + 2 * 18) * centerScale
 
     // Resolve SVG logo path from python3 provider; falls back to a generic icon
     readonly property string logoPath: {
@@ -120,8 +123,8 @@ Rectangle {
             spacing: 20 * root.centerScale
 
             Item {
-                Layout.preferredWidth: 140 * root.centerScale
-                Layout.preferredHeight: 140 * root.centerScale
+                Layout.preferredWidth: 180 * root.centerScale
+                Layout.preferredHeight: 180 * root.centerScale
                 implicitWidth: Layout.preferredWidth
                 implicitHeight: Layout.preferredHeight
                 Layout.alignment: Qt.AlignVCenter
@@ -174,18 +177,18 @@ Rectangle {
         // Terminal dot palette — uses clTerms from scheme.json; empty while colors load
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 14 * root.centerScale
+            spacing: 16 * root.centerScale
 
             Repeater {
                 model: root.clTerms && root.clTerms.length ? root.clTerms.slice(0, 7) : []
 
                 Rectangle {
                     required property string modelData
-                    Layout.preferredWidth: 20 * root.centerScale
-                    Layout.preferredHeight: 20 * root.centerScale
+                    Layout.preferredWidth: 28 * root.centerScale
+                    Layout.preferredHeight: 28 * root.centerScale
                     implicitWidth: Layout.preferredWidth
                     implicitHeight: Layout.preferredHeight
-                    radius: 10 * root.centerScale
+                    radius: 14 * root.centerScale
                     color: modelData
                 }
             }

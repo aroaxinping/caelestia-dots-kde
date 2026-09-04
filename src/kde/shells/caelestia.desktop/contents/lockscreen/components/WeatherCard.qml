@@ -20,6 +20,9 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius * centerScale
     color: clSurfaceContainer
+    // Natural height = content + vertical padding so the card shrinks-to-fit
+    // when Layout.fillHeight is not set (matches Quickshell Content.qml behaviour)
+    implicitHeight: weatherContent.implicitHeight + 40 * centerScale
 
     function getWeatherSymbol(desc, code) {
         var d = (desc || "").toLowerCase();
@@ -35,35 +38,44 @@ Rectangle {
     }
 
     ColumnLayout {
+        id: weatherContent
         anchors.centerIn: parent
-        // Spacing is NOT scaled — matches other cards (MediaCard etc.)
-        spacing: 6
+        spacing: 4
+        // Dim the card while weather data is still loading so the user
+        // can see placeholders without them looking like real values
+        opacity: root.weatherInfo ? 1.0 : 0.5
+        Behavior on opacity { NumberAnimation { duration: 400 } }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo ? root.weatherInfo.current_condition[0].weatherDesc[0].value : ""
-            // Fixed px — same convention as MediaCard, NotifDock, GreetingPill
-            font { pixelSize: 17; family: "Outfit" }
+            text: root.weatherInfo
+                  ? root.weatherInfo.current_condition[0].weatherDesc[0].value
+                  : "No weather"
+            font { pixelSize: 15; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 12
+            spacing: 10
 
             Text {
-                text: root.weatherInfo ? root.weatherInfo.current_condition[0].temp_C + "°C" : ""
-                font { pixelSize: 42; family: "Outfit"; weight: Font.Medium }
-                // Match Quickshell reference: temperature uses clPrimary (accent), not clSurfaceFg
+                text: root.weatherInfo
+                      ? root.weatherInfo.current_condition[0].temp_C + "°C"
+                      : "--°C"
+                font { pixelSize: 28; family: "Outfit"; weight: Font.Medium }
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
             }
 
             Text {
-                text: root.weatherInfo ? root.getWeatherSymbol(root.weatherInfo.current_condition[0].weatherDesc[0].value, root.weatherInfo.current_condition[0].weatherCode) : ""
+                text: root.weatherInfo
+                      ? root.getWeatherSymbol(root.weatherInfo.current_condition[0].weatherDesc[0].value,
+                                              root.weatherInfo.current_condition[0].weatherCode)
+                      : "cloud"
                 font.family: "Material Symbols Rounded"
-                font.pixelSize: 34
+                font.pixelSize: 26
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
@@ -72,15 +84,19 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo ? "Feels like " + root.weatherInfo.current_condition[0].FeelsLikeC + "°C" : ""
-            font { pixelSize: 15; family: "Outfit" }
+            text: root.weatherInfo
+                  ? "Feels like " + root.weatherInfo.current_condition[0].FeelsLikeC + "°C"
+                  : "Feels like --°C"
+            font { pixelSize: 14; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo ? "High " + root.weatherInfo.weather[0].maxtempC + "°C • Low " + root.weatherInfo.weather[0].mintempC + "°C" : ""
-            font { pixelSize: 15; family: "Outfit" }
+            text: root.weatherInfo
+                  ? "High " + root.weatherInfo.weather[0].maxtempC + "°C • Low " + root.weatherInfo.weather[0].mintempC + "°C"
+                  : "High --°C • Low --°C"
+            font { pixelSize: 14; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
     }
