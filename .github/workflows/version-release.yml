@@ -180,3 +180,62 @@ jobs:
             --head main \
             --title "chore: sync main back to dev after $VERSION" \
             --body "This is an automated PR to sync the newly updated contributor stats and release tags from \`main\` back into \`dev\`." || true
+
+  # ═══════════════════════════════════════════════════════════
+  # Precompile the Caelestia shell (the C++ QML plugin modules and
+  # M3Shapes) so a fresh install downloads the .so files instead of
+  # compiling Qt6/C++ on the user's machine. Attached to the version
+  # release, not the caelestia-bin-repo tag.
+  #
+  # Built against Arch's Qt/KF so the artifacts match the primary
+  # target distro's ABI. The KWin effect is deliberately excluded:
+  # it links KWin::kwin, whose ABI is Plasma-version-specific, so it
+  # stays a local build (see 08-build-shell.sh).
+  # ═══════════════════════════════════════════════════════════
+  build-shell:
+    name: Precompile shell artifacts (x86_64)
+    needs: version-release
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install shell build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git github-cli cmake ninja \
+            qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-tools \
+            kwindowsystem kguiaddons kglobalaccel kconfig networkmanager-qt pulseaudio-qt \
+            libqalculate pipewire aubio cava lm_sensors extra-cmake-modules
+
+      - name: Load release tag
+        run: |
+          set -euo pipefail
+          source .github/version.env
+          echo "TAG=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Configure shell
+        run: |
+          cmake -G Ninja -B shell/build -S shell -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DINSTALL_QSCONFDIR=etc/xdg/quickshell/caelestia \
+            -DINSTALL_LIBDIR=lib/caelestia \
+            -DINSTALL_QMLDIR=lib/qt6/qml
+
+      - name: Build shell
+        run: cmake --build shell/build -j"$(nproc)"
+
+      - name: Stage compiled artifacts
+        run: |
+          DESTDIR="$PWD/stage" cmake --install shell/build
+          mkdir -p dist
+          tar -C stage/usr -czf dist/caelestia-shell-x86_64.tar.gz \
+            lib/qt6/qml/Caelestia lib/qt6/qml/M3Shapes lib/caelestia/version
+
+      - name: Attach shell artifacts to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$TAG" dist/caelestia-shell-x86_64.tar.gz --clobber
