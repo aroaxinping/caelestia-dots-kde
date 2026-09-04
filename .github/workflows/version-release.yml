@@ -6,12 +6,13 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: version-release
+  cancel-in-progress: true
+
 jobs:
   version-release:
     runs-on: ubuntu-latest
-    concurrency:
-      group: version-release
-      cancel-in-progress: true
     permissions:
       contents: write
 

@@ -251,6 +251,7 @@ try_download_prebuilt_shell() {
     local arch qt_abi tag tmp_archive url
     arch="$(uname -m)"
     [[ "$arch" == "x86_64" ]] || return 1
+    [[ -f /etc/arch-release ]] || return 1
     qt_abi="$(shell_qt_abi)"
     tag="$(shell_release_tag)"
     [[ -n "$qt_abi" && -n "$tag" ]] || return 1
