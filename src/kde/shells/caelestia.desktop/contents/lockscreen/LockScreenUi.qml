@@ -101,8 +101,8 @@ Item {
     Plasma5Support.DataSource {
         id: fetchLoader
         engine: "executable"
-        connectedSources: ["fastfetch -s os:kernel:uptime:packages --format json"]
-        property var fetchInfo: []
+        connectedSources: ["python3 -c \"import os, json, pwd; d = dict(line.strip().split('=', 1) for line in open('/etc/os-release') if '=' in line); os_name = (d.get('PRETTY_NAME') or d.get('NAME', 'Linux')).strip('\\\"'); logo_id = (d.get('LOGO') or d.get('ID', 'cachyos')).strip('\\\"'); logo_path = ''; [logo_path := 'file://' + p for p in [f'/usr/share/icons/{logo_id}.svg', f'/usr/share/pixmaps/{logo_id}.svg', f'/usr/share/icons/hicolor/scalable/apps/{logo_id}.svg', '/usr/share/icons/cachyos.svg', '/usr/share/icons/hicolor/scalable/apps/distributor-logo.svg'] if not logo_path and os.path.isfile(p)]; u = os.environ.get('USER') or pwd.getpwuid(os.getuid()).pw_name; s = int(float(open('/proc/uptime').read().split()[0])); h, m = s // 3600, (s % 3600) // 60; up = (f'{h} hours, {m} mins' if h > 0 else f'{m} mins'); print(json.dumps({'os': os_name, 'wm': 'KDE', 'user': u, 'uptime': up, 'id': logo_id, 'logoPath': logo_path}))\" 2>/dev/null"]
+        property var fetchInfo: null
         onNewData: (source, data) => {
             var stdout = data["stdout"] || "";
             if (!stdout) return;

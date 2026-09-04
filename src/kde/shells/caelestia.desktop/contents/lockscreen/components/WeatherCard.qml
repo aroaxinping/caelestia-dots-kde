@@ -17,6 +17,10 @@ Rectangle {
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
 
+    property real cardRadius: 26
+    radius: cardRadius * centerScale
+    color: clSurfaceContainer
+
     function getWeatherSymbol(desc, code) {
         var d = (desc || "").toLowerCase();
         if (d.indexOf("sunny") !== -1 || d.indexOf("clear") !== -1) return "clear_day";
@@ -30,17 +34,15 @@ Rectangle {
         return "cloud";
     }
 
-    property real cardRadius: 26
-    radius: cardRadius
-    color: clSurfaceContainer
-
     ColumnLayout {
         anchors.centerIn: parent
+        // Spacing is NOT scaled — matches other cards (MediaCard etc.)
         spacing: 6
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root.weatherInfo ? root.weatherInfo.current_condition[0].weatherDesc[0].value : ""
+            // Fixed px — same convention as MediaCard, NotifDock, GreetingPill
             font { pixelSize: 17; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
@@ -52,7 +54,10 @@ Rectangle {
             Text {
                 text: root.weatherInfo ? root.weatherInfo.current_condition[0].temp_C + "°C" : ""
                 font { pixelSize: 42; family: "Outfit"; weight: Font.Medium }
-                color: root.clSurfaceFg
+                // Match Quickshell reference: temperature uses clPrimary (accent), not clSurfaceFg
+                color: root.clPrimary
+                verticalAlignment: Text.AlignVCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             Text {
@@ -60,6 +65,8 @@ Rectangle {
                 font.family: "Material Symbols Rounded"
                 font.pixelSize: 34
                 color: root.clPrimary
+                verticalAlignment: Text.AlignVCenter
+                Layout.alignment: Qt.AlignVCenter
             }
         }
 
