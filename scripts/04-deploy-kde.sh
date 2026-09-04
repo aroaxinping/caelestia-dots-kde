@@ -89,26 +89,6 @@ systemctl --user daemon-reload
 systemctl --user enable --now cliphist.service 2>/dev/null || true
 ok "Cliphist background service enabled."
 
-#  Caelestia Lock Screen Greeter
-info "Installing Caelestia lock screen greeter..."
-SHELL_SRC="$BUNDLE_DIR/src/kde/shells/caelestia.desktop"
-SHELL_DEST="$HOME/.local/share/plasma/shells/caelestia.desktop"
-if [[ -d "$SHELL_SRC" ]]; then
-    mkdir -p "$(dirname "$SHELL_DEST")"
-    rm -rf "$SHELL_DEST"
-    cp -r "$SHELL_SRC" "$SHELL_DEST"
-    
-    # Remove old look-and-feel config if present
-    kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" --delete 2>/dev/null || true
-    
-    # Set the new shell package
-    kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelestia.desktop"
-    
-    ok "Caelestia lock screen greeter installed."
-else
-    skip "Lock screen greeter source not found."
-fi
-
 ok "KDE settings applied."
 
 #  Set Default Wallpaper
