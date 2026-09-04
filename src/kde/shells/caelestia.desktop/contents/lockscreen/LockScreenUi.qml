@@ -46,6 +46,11 @@ Item {
     property color clPrimaryFg: "#2a2a60"
     property color clError: "#ffb4ab"
     property color clSurfaceVariantFg: "#c8c5d1"
+    property color clPrimaryContainer: "#744550"
+    property color clSecondaryContainer: "#4f343a"
+    property color clTertiary: "#fedeff"
+    property color clOnTertiary: "#694a6f"
+    property color clOutline: "#837174"
 
     property var clTerms: []
 
@@ -73,6 +78,11 @@ Item {
                 if (c.onPrimary) clPrimaryFg = "#" + c.onPrimary;
                 if (c.error) clError = "#" + c.error;
                 if (c.onSurfaceVariant) clSurfaceVariantFg = "#" + c.onSurfaceVariant;
+                if (c.primaryContainer) clPrimaryContainer = "#" + c.primaryContainer;
+                if (c.secondaryContainer) clSecondaryContainer = "#" + c.secondaryContainer;
+                if (c.tertiary) clTertiary = "#" + c.tertiary;
+                if (c.onTertiary) clOnTertiary = "#" + c.onTertiary;
+                if (c.outline) clOutline = "#" + c.outline;
                 var terms = [];
                 for (var i = 0; i < 8; i++) {
                     if (c["term" + i]) terms.push("#" + c["term" + i]);
@@ -536,7 +546,7 @@ Item {
 
                     ResourcesCard {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 110 * lockScreenUi.centerScale
+                        Layout.preferredHeight: 170 * lockScreenUi.centerScale
                         centerScale: lockScreenUi.centerScale
                         liveCpu: lockScreenUi.liveCpu
                         liveTemp: lockScreenUi.liveTemp
@@ -545,11 +555,20 @@ Item {
                         cpuPercentage: Cpu.percentage ?? 0
                         memoryPercentage: Memory.percentage ?? 0
                         storagePercentage: Storage.percentage ?? 0
+                        clSurface: lockScreenUi.clSurface
+                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
                         clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
+                        clPrimaryContainer: lockScreenUi.clPrimaryContainer
+                        clSecondaryContainer: lockScreenUi.clSecondaryContainer
+                        clTertiary: lockScreenUi.clTertiary
+                        clOnTertiary: lockScreenUi.clOnTertiary
+                        clOutline: lockScreenUi.clOutline
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                         clPrimary: lockScreenUi.clPrimary
                         clSecondary: lockScreenUi.clSecondary
+                        clError: lockScreenUi.clError
                     }
 
                     NotifDock {
@@ -558,9 +577,12 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
                         clSurfaceContainer: lockScreenUi.clSurfaceContainer
+                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
+                        clSecondaryContainer: lockScreenUi.clSecondaryContainer
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        clOutline: lockScreenUi.clOutline
                         onClearAllRequested: notifActionSource.clearAll()
                     }
                 }

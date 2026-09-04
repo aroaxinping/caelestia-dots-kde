@@ -24,18 +24,26 @@ Rectangle {
     property real centerScale: 1.0
 
     property color clSurface: "#131317"
+    property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
+    property color clSurfaceContainerHighest: "#353438"
+    property color clPrimaryContainer: "#744550"
+    property color clSecondaryContainer: "#4f343a"
+    property color clTertiary: "#fedeff"
+    property color clOnTertiary: "#694a6f"
+    property color clOutline: "#837174"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
     property color clSecondary: "#c6c4e0"
     property color clError: "#ffb4ab"
 
-    radius: 20 * centerScale
-    color: "transparent"
+    radius: 26 * centerScale
+    color: clSurfaceContainer
 
     RowLayout {
         anchors.fill: parent
+        anchors.margins: 14 * centerScale
         spacing: 12 * centerScale
 
         // CPU Resource (MaterialShape.Pentagon)
@@ -47,24 +55,24 @@ Rectangle {
             icon: "memory"
             value: root.liveCpu + "%"
             shapeType: MaterialShape.Pentagon
-            shapeColor: root.clSurfaceContainerHigh
-            fillColor: Qt.rgba(root.clPrimary.r, root.clPrimary.g, root.clPrimary.b, 0.38)
+            shapeColor: root.clPrimaryContainer
+            fillColor: Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.3)
             fillPercent: Math.max(0, Math.min(1.0, root.cpuPercentage))
-            clSurfaceFg: root.clSurfaceFg
-            clSurfaceVariantFg: root.clSurfaceVariantFg
+            iconColor: root.clSecondary
+            valueColor: root.clPrimary
 
             MaterialShape {
                 id: tempBadge
                 x: cpu.mShape.pointAtAngle(45).x - implicitSize / 2 + 8 * root.centerScale
                 y: cpu.mShape.pointAtAngle(45).y - implicitSize / 2
                 shape: root.liveTemp > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
-                color: root.liveTemp > 90 ? root.clError : Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.25)
-                implicitSize: 28 * root.centerScale
+                color: root.liveTemp > 90 ? root.clError : root.clSecondaryContainer
+                implicitSize: 32 * root.centerScale
 
                 Text {
                     anchors.centerIn: parent
                     text: root.liveTemp + "°C"
-                    font { pixelSize: 10 * root.centerScale; family: "Outfit"; weight: Font.Medium }
+                    font { pixelSize: 11 * root.centerScale; family: "Google Sans Flex"; weight: Font.Medium }
                     color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
@@ -79,11 +87,11 @@ Rectangle {
             icon: "memory_alt"
             value: root.liveRam + "%"
             shapeType: MaterialShape.Slanted
-            shapeColor: root.clSurfaceContainerHigh
-            fillColor: Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.38)
+            shapeColor: root.clOnTertiary
+            fillColor: Qt.rgba(root.clTertiary.r, root.clTertiary.g, root.clTertiary.b, 0.3)
             fillPercent: Math.max(0, Math.min(1.0, root.memoryPercentage))
-            clSurfaceFg: root.clSurfaceFg
-            clSurfaceVariantFg: root.clSurfaceVariantFg
+            iconColor: root.clSecondary
+            valueColor: root.clTertiary
         }
 
         // Storage Resource (MaterialShape.Gem)
@@ -95,11 +103,11 @@ Rectangle {
             icon: "hard_disk"
             value: root.liveDisk + "%"
             shapeType: MaterialShape.Gem
-            shapeColor: root.clSurfaceContainerHigh
-            fillColor: Qt.rgba(root.clSurfaceFg.r, root.clSurfaceFg.g, root.clSurfaceFg.b, 0.22)
+            shapeColor: root.clSecondaryContainer
+            fillColor: Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.4)
             fillPercent: Math.max(0, Math.min(1.0, root.storagePercentage))
-            clSurfaceFg: root.clSurfaceFg
-            clSurfaceVariantFg: root.clSurfaceVariantFg
+            iconColor: root.clSecondary
+            valueColor: root.clSecondary
         }
     }
 
@@ -113,8 +121,8 @@ Rectangle {
         property color shapeColor: "#2a292e"
         property color fillColor: "cyan"
         property real fillPercent: 0.0
-        property color clSurfaceFg: "#e5e1e7"
-        property color clSurfaceVariantFg: "#c8c5d1"
+        property color iconColor: "#c6c4e0"
+        property color valueColor: "#e5e1e7"
 
         readonly property alias mShape: shape
 
@@ -177,15 +185,15 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.icon
                 font.family: "Material Symbols Rounded"
-                font.pixelSize: 20 * res.centerScale
-                color: res.clSurfaceVariantFg
+                font.pixelSize: 24 * res.centerScale
+                color: res.iconColor
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.value
-                font { pixelSize: 14 * res.centerScale; family: "Outfit"; weight: Font.Medium }
-                color: res.clSurfaceFg
+                font { pixelSize: 16 * res.centerScale; family: "Google Sans Flex"; weight: Font.Medium }
+                color: res.valueColor
             }
         }
     }
