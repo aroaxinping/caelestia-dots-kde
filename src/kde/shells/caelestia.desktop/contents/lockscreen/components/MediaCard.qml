@@ -5,6 +5,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: root
@@ -25,26 +26,42 @@ Rectangle {
 
     radius: 20 * centerScale
     color: clSurfaceContainer
-    clip: true
 
-    Image {
+    Item {
+        id: bgContainer
         anchors.fill: parent
-        source: root.hasMedia ? (root.multiplex.artUrl || "") : ""
-        fillMode: Image.PreserveAspectCrop
-        visible: status === Image.Ready
+        visible: root.hasMedia
+        layer.enabled: true
+        layer.effect: OpacityMask {
+            maskSource: maskRect
+        }
+
+        Image {
+            anchors.fill: parent
+            source: root.hasMedia ? (root.multiplex.artUrl || "") : ""
+            fillMode: Image.PreserveAspectCrop
+            visible: status === Image.Ready
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: root.clSurface
+            opacity: 0.6
+        }
     }
 
     Rectangle {
+        id: maskRect
         anchors.fill: parent
-        color: root.clSurface
-        opacity: 0.6
-        visible: root.hasMedia
+        radius: root.radius
+        visible: false
+        layer.enabled: true
     }
 
     ColumnLayout {
         anchors.centerIn: parent
         width: parent.width * 0.9
-        spacing: 8 * centerScale
+        spacing: 8
         visible: root.hasMedia
 
         Text {
@@ -135,7 +152,7 @@ Rectangle {
     Text {
         anchors.centerIn: parent
         text: "No Media Playing"
-        font { pixelSize: 16 * centerScale; family: "Outfit" }
+        font { pixelSize: 16; family: "Outfit" }
         color: root.clSurfaceVariantFg
         visible: !root.hasMedia
     }
