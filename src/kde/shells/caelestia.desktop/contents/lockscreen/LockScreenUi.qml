@@ -409,11 +409,13 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         fetchInfo: fetchLoader.fetchInfo
                         clTerms: lockScreenUi.clTerms
+                        clSurface: lockScreenUi.clSurface
                         clSurfaceContainer: lockScreenUi.clSurfaceContainer
                         clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        clPrimary: lockScreenUi.clPrimary
                     }
 
                     MediaCard {
@@ -426,6 +428,7 @@ Item {
                         clSurfaceContainer: lockScreenUi.clSurfaceContainer
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        clPrimary: lockScreenUi.clPrimary
                         onPreviousRequested: mediaActionSource.send("previous")
                         onPlayPauseRequested: mediaActionSource.send("playPause")
                         onNextRequested: mediaActionSource.send("next")
@@ -504,7 +507,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             visible: capsLockState.locked && !lockScreenUi.authMessage
                             text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
-                            font { pixelSize: 13 * lockScreenUi.centerScale; family: "Rubik" }
+                            font { pixelSize: 14; family: "Rubik" }
                             color: lockScreenUi.clSurfaceVariantFg
                             wrapMode: Text.WordWrap
                             opacity: visible ? 1 : 0
@@ -518,7 +521,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             visible: false
                             text: lockScreenUi.authMessage
-                            font { pixelSize: 13 * lockScreenUi.centerScale; family: "Rubik" }
+                            font { pixelSize: 14; family: "Rubik" }
                             color: lockScreenUi.clError
                             wrapMode: Text.WordWrap
                             scale: 0.7; opacity: 0
@@ -531,7 +534,7 @@ Item {
                             anchors.topMargin: 6 * lockScreenUi.centerScale
                             visible: authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint
                             text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
-                            font { pixelSize: 11 * lockScreenUi.centerScale; family: "Rubik" }
+                            font { pixelSize: 12; family: "Rubik" }
                             color: lockScreenUi.clSurfaceVariantFg
                         }
                     }

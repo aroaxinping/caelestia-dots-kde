@@ -17,6 +17,7 @@ Rectangle {
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
+    property color clPrimary: "#c2c1ff"
 
     signal previousRequested()
     signal playPauseRequested()
@@ -49,7 +50,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: root.multiplex.title || ""
-            font { pixelSize: 18 * centerScale; family: "Outfit"; weight: Font.Medium }
+            font { pixelSize: 18; family: "Outfit"; weight: Font.Medium }
             color: root.clSurfaceFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -58,7 +59,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: root.multiplex.artist || ""
-            font { pixelSize: 14 * centerScale; family: "Outfit" }
+            font { pixelSize: 15; family: "Outfit" }
             color: root.clSurfaceVariantFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -66,20 +67,20 @@ Rectangle {
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 16 * centerScale
-            Layout.topMargin: 12 * centerScale
+            spacing: 16
+            Layout.topMargin: 12
 
             Rectangle {
-                width: 36 * centerScale
-                height: 36 * centerScale
-                radius: 18 * centerScale
+                width: 38
+                height: 38
+                radius: 19
                 color: Qt.rgba(255, 255, 255, 0.1)
 
                 Text {
                     anchors.centerIn: parent
                     text: "skip_previous"
                     font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * centerScale
+                    font.pixelSize: 22
                     color: root.clSurfaceFg
                 }
                 MouseArea {
@@ -90,16 +91,16 @@ Rectangle {
             }
 
             Rectangle {
-                width: 64 * centerScale
-                height: 42 * centerScale
-                radius: 21 * centerScale
-                color: root.clSurfaceFg
+                width: 66
+                height: 42
+                radius: 21
+                color: root.clPrimary
 
                 Text {
                     anchors.centerIn: parent
                     text: root.multiplex.status === "Playing" ? "pause" : "play_arrow"
                     font.family: "Material Symbols Rounded"
-                    font.pixelSize: 24 * centerScale
+                    font.pixelSize: 26
                     color: root.clSurface
                 }
                 MouseArea {
@@ -110,16 +111,16 @@ Rectangle {
             }
 
             Rectangle {
-                width: 36 * centerScale
-                height: 36 * centerScale
-                radius: 18 * centerScale
+                width: 38
+                height: 38
+                radius: 19
                 color: Qt.rgba(255, 255, 255, 0.1)
 
                 Text {
                     anchors.centerIn: parent
                     text: "skip_next"
                     font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * centerScale
+                    font.pixelSize: 22
                     color: root.clSurfaceFg
                 }
                 MouseArea {

@@ -115,7 +115,7 @@ Rectangle {
                 text: root.liveNotifs.length > 0
                       ? (root.liveNotifs.length + (root.liveNotifs.length === 1 ? " notification" : " notifications"))
                       : "Notifications"
-                font { pixelSize: 13 * centerScale; family: "Rubik"; weight: Font.Medium }
+                font { pixelSize: 15; family: "Rubik"; weight: Font.Medium }
                 color: root.clOutline
                 elide: Text.ElideRight
             }
@@ -258,14 +258,14 @@ Rectangle {
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.appName
-                                font { pixelSize: 13.5 * root.centerScale; family: "Rubik"; weight: Font.Medium }
+                                font { pixelSize: 16; family: "Rubik"; weight: Font.Medium }
                                 color: root.clSurfaceVariantFg
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 text: root.formatNotifTime(modelData.latestTime)
-                                font { pixelSize: 12 * root.centerScale; family: "Rubik" }
+                                font { pixelSize: 14; family: "Rubik" }
                                 color: root.clOutline
                             }
 
@@ -273,26 +273,26 @@ Rectangle {
                             Rectangle {
                                 id: expandPill
                                 visible: modelData.notifs.length > 3
-                                implicitWidth: expandPillLayout.implicitWidth + 14 * root.centerScale
-                                implicitHeight: 22 * root.centerScale
+                                implicitWidth: expandPillLayout.implicitWidth + 16
+                                implicitHeight: 24
                                 radius: height / 2
                                 color: root.clSurfaceContainerHighest
 
                                 RowLayout {
                                     id: expandPillLayout
                                     anchors.centerIn: parent
-                                    spacing: 3 * root.centerScale
+                                    spacing: 4
 
                                     Text {
                                         text: modelData.notifs.length
-                                        font { pixelSize: 11.5 * root.centerScale; family: "Rubik"; weight: Font.Medium }
+                                        font { pixelSize: 13; family: "Rubik"; weight: Font.Medium }
                                         color: root.clSurfaceFg
                                     }
 
                                     Text {
                                         text: groupCard.expanded ? "expand_less" : "expand_more"
                                         font.family: "Material Symbols Rounded"
-                                        font.pixelSize: 15 * root.centerScale
+                                        font.pixelSize: 16
                                         color: root.clSurfaceFg
                                     }
                                 }
@@ -319,7 +319,7 @@ Rectangle {
                                     anchors.right: parent.right
                                     textFormat: Text.StyledText
                                     elide: Text.ElideRight
-                                    font { pixelSize: 12.5 * root.centerScale; family: "Rubik" }
+                                    font { pixelSize: 14; family: "Rubik" }
                                     text: {
                                         var sum = (modelData.summary || "").replace(/\n/g, " ");
                                         var body = (modelData.body || "").replace(/\n/g, " ");

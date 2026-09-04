@@ -19,31 +19,31 @@ Rectangle {
 
     color: pillColor
     radius: height / 2
-    implicitWidth: greetingRow.implicitWidth + 32 * centerScale
-    implicitHeight: greetingRow.implicitHeight + 16 * centerScale
+    implicitWidth: greetingRow.implicitWidth + 32
+    implicitHeight: greetingRow.implicitHeight + 16
 
     RowLayout {
         id: greetingRow
         anchors.centerIn: parent
-        spacing: 12 * centerScale
+        spacing: 10
 
         Text {
             text: root.greetingInfo ? (root.greetingInfo.icon || "") : ""
             font.family: "Material Symbols Rounded"
-            font.pixelSize: 22 * root.centerScale
+            font.pixelSize: 20
             color: root.greetingInfo ? (root.greetingInfo.iconColor || root.clPrimary) : root.clPrimary
         }
         RowLayout {
-            spacing: 4 * root.centerScale
+            spacing: 4
             Text {
                 text: (root.greetingInfo ? root.greetingInfo.greeting : "") + ","
                 color: root.clSurfaceVariantFg
-                font { pixelSize: 14 * root.centerScale; family: "Rubik" }
+                font { pixelSize: 15; family: "Rubik" }
             }
             Text {
                 text: root.userName || "User"
                 color: root.clPrimary
-                font { pixelSize: 14 * root.centerScale; family: "Rubik"; weight: Font.Bold }
+                font { pixelSize: 15; family: "Rubik"; weight: Font.Bold }
             }
         }
     }

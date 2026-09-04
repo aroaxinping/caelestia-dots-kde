@@ -135,8 +135,9 @@ ColumnLayout {
         text: Qt.formatDate(root.currentTime, "dddd • d MMM").toUpperCase()
         font {
             family: root.clockFontFamily
-            pointSize: Math.max(1, Math.round(17 * root.centerScale))
+            pointSize: 16
             weight: Font.DemiBold
+            letterSpacing: 1.5
         }
         color: root.clSurfaceFg
     }

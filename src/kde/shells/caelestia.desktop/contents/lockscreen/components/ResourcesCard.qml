@@ -67,12 +67,12 @@ Rectangle {
                 y: cpu.mShape.pointAtAngle(45).y - implicitSize / 2
                 shape: root.liveTemp > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
                 color: root.liveTemp > 90 ? root.clError : root.clSecondaryContainer
-                implicitSize: 32 * root.centerScale
+                implicitSize: 34
 
                 Text {
                     anchors.centerIn: parent
                     text: root.liveTemp + "°C"
-                    font { pixelSize: 11 * root.centerScale; family: "Google Sans Flex"; weight: Font.Medium }
+                    font { pixelSize: 13; family: "Google Sans Flex"; weight: Font.Medium }
                     color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
@@ -185,14 +185,14 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.icon
                 font.family: "Material Symbols Rounded"
-                font.pixelSize: 24 * res.centerScale
+                font.pixelSize: 28
                 color: res.iconColor
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.value
-                font { pixelSize: 16 * res.centerScale; family: "Google Sans Flex"; weight: Font.Medium }
+                font { pixelSize: 20; family: "Google Sans Flex"; weight: Font.Medium }
                 color: res.valueColor
             }
         }

@@ -17,8 +17,10 @@ Rectangle {
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
     property color clSurfaceContainerHighest: "#353438"
+    property color clSurface: "#131317"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
+    property color clPrimary: "#c2c1ff"
 
     radius: 20 * centerScale
     color: clSurfaceContainer
@@ -41,20 +43,20 @@ Rectangle {
                 spacing: 8 * centerScale
 
                 Rectangle {
-                    width: 24 * centerScale
-                    height: 24 * centerScale
-                    radius: 12 * centerScale
-                    color: root.clSurfaceContainerHighest
+                    width: 26
+                    height: 26
+                    radius: 8
+                    color: root.clPrimary
                     Text {
                         anchors.centerIn: parent
                         text: ">"
-                        font { pixelSize: 14 * centerScale; family: "Outfit" }
-                        color: root.clSurfaceFg
+                        font { pixelSize: 15; family: "Outfit"; weight: Font.Bold }
+                        color: root.clSurface
                     }
                 }
                 Text {
                     text: "caelestiafetch.sh"
-                    font { pixelSize: 14 * centerScale; family: "Outfit" }
+                    font { pixelSize: 15; family: "Outfit"; weight: Font.Medium }
                     color: root.clSurfaceVariantFg
                     Layout.fillWidth: true
                 }
@@ -65,11 +67,11 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 16 * centerScale
+            spacing: 16
 
             Kirigami.Icon {
-                Layout.preferredWidth: 64 * centerScale
-                Layout.preferredHeight: 64 * centerScale
+                Layout.preferredWidth: 64
+                Layout.preferredHeight: 64
                 Layout.alignment: Qt.AlignVCenter
                 source: {
                     if (root.fetchInfo && Array.isArray(root.fetchInfo)) {
@@ -87,16 +89,16 @@ Rectangle {
             ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
                 Layout.fillWidth: true
-                spacing: 4 * centerScale
+                spacing: 4
                 Repeater {
                     model: root.fetchInfo
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
                             text: modelData.type.toUpperCase() + " :"
-                            font { pixelSize: 13 * centerScale; family: "Outfit"; weight: Font.Medium }
+                            font { pixelSize: 15; family: "Outfit"; weight: Font.Medium }
                             color: root.clSurfaceVariantFg
-                            Layout.minimumWidth: 70 * centerScale
+                            Layout.minimumWidth: 78
                         }
                         Text {
                             text: {
@@ -110,7 +112,7 @@ Rectangle {
                                 if (modelData.type === "Kernel") return modelData.result.release;
                                 return modelData.result.name || "";
                             }
-                            font { pixelSize: 13 * centerScale; family: "Outfit" }
+                            font { pixelSize: 15; family: "Outfit" }
                             color: root.clSurfaceFg
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -123,13 +125,13 @@ Rectangle {
         // Terminal Dot Palette
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 8 * centerScale
+            spacing: 8
             Repeater {
                 model: root.clTerms
                 Rectangle {
-                    width: 14 * centerScale
-                    height: 14 * centerScale
-                    radius: 7 * centerScale
+                    width: 15
+                    height: 15
+                    radius: 7.5
                     color: modelData
                 }
             }

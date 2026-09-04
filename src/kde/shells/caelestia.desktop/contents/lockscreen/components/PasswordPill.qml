@@ -65,7 +65,7 @@ Item {
     TextMetrics {
         id: placeholderMetrics
         text: root.isAuthenticating ? qsTr("Loading...") : qsTr("Enter your password")
-        font { pixelSize: 14 * root.centerScale; family: "Outfit"; weight: Font.Normal }
+        font { pixelSize: 15; family: "Outfit"; weight: Font.Normal }
     }
 
     readonly property real collapsedWidth: Math.min(
@@ -75,7 +75,7 @@ Item {
     readonly property real expandedWidth: root.centerWidth * 0.82
 
     implicitWidth: passwordBox.text.length > 0 ? expandedWidth : collapsedWidth
-    implicitHeight: 60 * root.centerScale
+    implicitHeight: 52
     transform: Translate { x: root.shakeX }
 
     Behavior on implicitWidth {
@@ -119,7 +119,7 @@ Item {
                     anchors.centerIn: parent
                     text: root.hasFingerprint ? "fingerprint" : "lock"
                     font.family: "Material Symbols Rounded"
-                    font.pixelSize: 22 * root.centerScale
+                    font.pixelSize: 22
                     color: root.clSurfaceVariantFg
                     visible: !root.isAuthenticating
                 }
@@ -280,7 +280,7 @@ Item {
                     anchors.centerIn: parent
                     text: "arrow_forward"
                     font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * root.centerScale
+                    font.pixelSize: 20
                     color: root.clSurfaceVariantFg
                     opacity: passwordBox.text.length > 0 ? 0 : 1
                     Behavior on opacity { NumberAnimation { duration: 150 } }
