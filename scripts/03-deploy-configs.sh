@@ -121,7 +121,7 @@ deploy_config() {
             expected="$(<"$stamp")"
         fi
 
-        if [[ -z "$expected" || "$current" != "$expected" ]]; then
+        if [[ -n "$expected" && "$current" != "$expected" ]]; then
             skip "Preserving locally modified config: $config"
             echo "           Backup: $BACKUP_DIR/.config/$config"
             return
@@ -186,7 +186,7 @@ if [[ -f "$DOTS_DIR/starship.toml" ]]; then
         if [[ -f "$starship_stamp" ]]; then
             starship_expected="$(<"$starship_stamp")"
         fi
-        if [[ -z "$starship_expected" || "$starship_current" != "$starship_expected" ]]; then
+        if [[ -n "$starship_expected" && "$starship_current" != "$starship_expected" ]]; then
             skip "Preserving locally modified config: starship.toml"
             echo "           Backup: $BACKUP_DIR/.config/starship.toml"
         else
