@@ -4,7 +4,7 @@
     "KPlugin": {
         "Id": "caelestia.desktop",
         "Name": "Caelestia Lock Screen",
-        "Description": "A minimal, transparent lock screen greeter designed to overlay Caelestia's PlasmaApplicationWallpaper background.",
+        "Description": "Caelestia Lock Screen Greeter for KDE Plasma.",
         "Authors": [{ "Name": "ladybug-me" }],
         "License": "GPL-2.0-or-later",
         "Version": "1.0.0"

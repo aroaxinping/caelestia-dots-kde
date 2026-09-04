@@ -130,8 +130,8 @@
         {
           "id": "APPLY_LOCKSCREEN",
           "type": "boolean",
-          "title": "Custom lockscreen wallpaper",
-          "help": "Turn on the plasma-wallpaper-application lockscreen plugin.",
+          "title": "Custom lockscreen",
+          "help": "Install the Caelestia lock screen greeter for KDE Plasma.",
           "default": true
         },
         {
