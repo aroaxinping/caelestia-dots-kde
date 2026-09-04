@@ -80,9 +80,23 @@ systemctl --user daemon-reload
 systemctl --user enable --now cliphist.service 2>/dev/null || true
 ok "Cliphist background service enabled."
 
+#  Caelestia Lock Screen Greeter
+info "Installing Caelestia lock screen greeter..."
+LNF_SRC="$BUNDLE_DIR/src/kde/look-and-feel/caelestia.lockscreen"
+LNF_DEST="$HOME/.local/share/plasma/look-and-feel/caelestia.lockscreen"
+if [[ -d "$LNF_SRC" ]]; then
+    mkdir -p "$(dirname "$LNF_DEST")"
+    rm -rf "$LNF_DEST"
+    cp -r "$LNF_SRC" "$LNF_DEST"
+    kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" "caelestia.lockscreen"
+    ok "Caelestia lock screen greeter installed."
+else
+    skip "Lock screen greeter source not found."
+fi
+
 ok "KDE settings applied."
 
-#  Set Default Wallpaper 
+#  Set Default Wallpaper
 # Prefer the dharmx "digital" pack (downloaded by 03a-wallpapers.sh) when it
 # is present; otherwise keep the bundled Minimal-Paper.png fallback so a fresh
 # install still has a wallpaper even with no network.
