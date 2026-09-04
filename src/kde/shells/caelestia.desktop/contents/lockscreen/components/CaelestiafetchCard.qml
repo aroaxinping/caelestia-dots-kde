@@ -22,7 +22,8 @@ Rectangle {
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
 
-    radius: 20 * centerScale
+    property real cardRadius: 26
+    radius: cardRadius
     color: clSurfaceContainer
 
     ColumnLayout {

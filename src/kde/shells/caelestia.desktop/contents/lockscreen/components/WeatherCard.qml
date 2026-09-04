@@ -30,7 +30,8 @@ Rectangle {
         return "cloud";
     }
 
-    radius: 20 * centerScale
+    property real cardRadius: 26
+    radius: cardRadius
     color: clSurfaceContainer
 
     ColumnLayout {

@@ -38,7 +38,8 @@ Rectangle {
     property color clSecondary: "#c6c4e0"
     property color clError: "#ffb4ab"
 
-    radius: 26 * centerScale
+    property real cardRadius: 26
+    radius: cardRadius
     color: clSurfaceContainer
 
     RowLayout {

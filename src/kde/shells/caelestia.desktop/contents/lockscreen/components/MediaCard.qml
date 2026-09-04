@@ -24,7 +24,8 @@ Rectangle {
     signal playPauseRequested()
     signal nextRequested()
 
-    radius: 20 * centerScale
+    property real cardRadius: 26
+    radius: cardRadius
     color: clSurfaceContainer
 
     Item {

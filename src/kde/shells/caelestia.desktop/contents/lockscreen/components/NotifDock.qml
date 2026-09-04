@@ -97,7 +97,8 @@ Rectangle {
     onLiveNotifsChanged: updateGroups()
     Component.onCompleted: updateGroups()
 
-    radius: 26 * centerScale
+    property real cardRadius: 26
+    radius: cardRadius
     color: clSurfaceContainer
     clip: true
 

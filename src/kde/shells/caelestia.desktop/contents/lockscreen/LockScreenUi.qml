@@ -33,6 +33,9 @@ Item {
     readonly property real centerWidth: 600 * centerScale
     readonly property bool isPortrait: height > width * 1.2
     readonly property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
+    readonly property real bgRadius: 42 * (lockHeight / 1080)
+    readonly property real bgMargin: 16 * (lockHeight / 1080)
+    readonly property real cardRadius: bgRadius - bgMargin
 
     // Material You palette — defaults from Catppuccin Mocha,
     // overridden by scheme.json at lock time via DataSource below.
@@ -375,12 +378,12 @@ Item {
                 id: lockBg
                 anchors.fill: parent
                 color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.45)
-                radius: 42 * (lockScreenUi.lockHeight / 1080)
+                radius: lockScreenUi.bgRadius
             }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 16 * (lockScreenUi.lockHeight / 1080)
+                anchors.margins: lockScreenUi.bgMargin
                 spacing: 40 * (lockScreenUi.lockHeight / 1080)
 
                 // Left Column
@@ -394,6 +397,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.preferredHeight: 1
+                        cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         weatherInfo: weatherLoader.weatherInfo
                         clSurfaceContainer: lockScreenUi.clSurfaceContainer
@@ -406,6 +410,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.preferredHeight: 1
+                        cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         fetchInfo: fetchLoader.fetchInfo
                         clTerms: lockScreenUi.clTerms
@@ -422,6 +427,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.preferredHeight: 1
+                        cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         multiplex: lockScreenUi.liveMedia
                         clSurface: lockScreenUi.clSurface
@@ -550,6 +556,7 @@ Item {
                     ResourcesCard {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 170 * lockScreenUi.centerScale
+                        cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveCpu: lockScreenUi.liveCpu
                         liveTemp: lockScreenUi.liveTemp
@@ -577,6 +584,7 @@ Item {
                     NotifDock {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
                         clSurfaceContainer: lockScreenUi.clSurfaceContainer
