@@ -24,6 +24,7 @@ Make your changes in the cloned repo, test them (see below), then open a PR. Tha
 | Area | Directory | Tech |
 | ------ | ----------- | ------ |
 | Shell UI (launcher, bar, notifications, etc.) | `shell/` | QML + Quickshell |
+| Lock screen greeter (Plasma 6 shell) | `src/kde/shells/caelestia.desktop/` | QML + KDE ScreenLocker |
 | KWin plugin (window management, shortcuts) | `shell/plugin/` | C++ |
 | TUI installer | `installer/src/` | C++ |
 | Installer theme & menus | `installer/theme.json`, `installer/menu.json` | JSON |
@@ -41,13 +42,32 @@ Edit files in `~/.config/quickshell/caelestia/`. Changes reload automatically - 
 caelestia-shell-ipc log
 
 # Restart the shell cleanly
-caelestia shell -k && caelestia shell -d
+~/.config/quickshell/caelestia/scripts/restart_shell.sh
 ```
 
 **Editor setup:**
 
 - Run `touch ~/.config/quickshell/caelestia/.qmlls.ini` for QML language server support
 - In VS Code, install the "Qt Qml" extension and set the `qmlls` path to `/usr/bin/qmlls6`
+
+### For Lock screen changes
+
+The lock screen is a native KDE Plasma 6 shell package located in `src/kde/shells/caelestia.desktop/`.
+
+```bash
+# Copy lock screen files to the local Plasma shells directory
+mkdir -p ~/.local/share/plasma/shells/
+cp -r src/kde/shells/caelestia.desktop ~/.local/share/plasma/shells/
+
+# Set the shell package (if not already set)
+kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelestia.desktop"
+
+# Test the lock screen safely in an interactive window (without locking your session)
+/usr/lib/kscreenlocker_greet --testing
+```
+
+- **Styling**: Widgets use frosted-glass blur textures with translucent backgrounds (`Qt.rgba(..., 0.55)`) and concentric corner radii (`cardRadius = bgRadius - bgMargin = 26px`).
+- **Avatars**: The greeter checks `~/.face` first and dynamically falls back to the system profile picture (`kscreenlocker_userImage`) and the default user icon.
 
 ### For C++ plugin changes
 
@@ -102,7 +122,7 @@ cmake -B build && cmake --build build   # Compile
 
 - [KWin port architecture](docs/kwin_port_architecture.md) - C++ plugin design and QML APIs
 - [Installer configuration](docs/installer_config.md) - theme.json and menu.json reference
-- [Lock screen architecture](docs/lockscreen_architecture.md) - lockscreen.qml design
+- [Lock screen architecture](docs/lockscreen_architecture.md) - native Plasma 6 greeter design and component structure
 
 ## Stuck?
 
