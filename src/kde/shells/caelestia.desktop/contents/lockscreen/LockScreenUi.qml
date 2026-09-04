@@ -36,6 +36,8 @@ Item {
     readonly property real bgRadius: 42 * (lockHeight / 1080)
     readonly property real bgMargin: 16 * (lockHeight / 1080)
     readonly property real cardRadius: bgRadius - bgMargin
+    readonly property color clCardBg: Qt.rgba(clSurfaceContainer.r, clSurfaceContainer.g, clSurfaceContainer.b, 0.55)
+    readonly property color clCardBgHigh: Qt.rgba(clSurfaceContainerHigh.r, clSurfaceContainerHigh.g, clSurfaceContainerHigh.b, 0.55)
 
     // Material You palette — defaults from Catppuccin Mocha,
     // overridden by scheme.json at lock time via DataSource below.
@@ -372,12 +374,12 @@ Item {
                     maskSource: Rectangle { width: lockBg.width; height: lockBg.height; radius: lockBg.radius }
                 }
                 FastBlur { anchors.fill: parent; source: bgSource; radius: 64 }
-                Rectangle { anchors.fill: parent; color: lockScreenUi.clSurface; opacity: 0.6 }
+                Rectangle { anchors.fill: parent; color: lockScreenUi.clSurface; opacity: 0.3 }
             }
             Rectangle {
                 id: lockBg
                 anchors.fill: parent
-                color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.45)
+                color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
                 radius: lockScreenUi.bgRadius
             }
 
@@ -400,7 +402,7 @@ Item {
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         weatherInfo: weatherLoader.weatherInfo
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
+                        clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                         clPrimary: lockScreenUi.clPrimary
@@ -415,8 +417,8 @@ Item {
                         fetchInfo: fetchLoader.fetchInfo
                         clTerms: lockScreenUi.clTerms
                         clSurface: lockScreenUi.clSurface
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainer: lockScreenUi.clCardBg
+                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
@@ -431,7 +433,7 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         multiplex: lockScreenUi.liveMedia
                         clSurface: lockScreenUi.clSurface
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
+                        clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                         clPrimary: lockScreenUi.clPrimary
@@ -490,8 +492,8 @@ Item {
                         isAuthenticating: lockScreenUi.isAuthenticating
                         graceLocked: Boolean(authenticator.graceLocked)
                         hasFingerprint: Boolean(authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint)
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainer: lockScreenUi.clCardBg
+                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                         clPrimary: lockScreenUi.clPrimary
@@ -566,8 +568,8 @@ Item {
                         memoryPercentage: Memory.percentage ?? 0
                         storagePercentage: Storage.percentage ?? 0
                         clSurface: lockScreenUi.clSurface
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainer: lockScreenUi.clCardBg
+                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                         clPrimaryContainer: lockScreenUi.clPrimaryContainer
                         clSecondaryContainer: lockScreenUi.clSecondaryContainer
@@ -587,8 +589,8 @@ Item {
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
-                        clSurfaceContainer: lockScreenUi.clSurfaceContainer
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainer: lockScreenUi.clCardBg
+                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                         clSecondaryContainer: lockScreenUi.clSecondaryContainer
                         clSurfaceFg: lockScreenUi.clSurfaceFg
@@ -658,7 +660,7 @@ Item {
                 centerScale: lockScreenUi.centerScale
                 greetingInfo: lockScreenUi.greetingInfo
                 userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
-                pillColor: lockScreenUi.clSurfaceContainer
+                pillColor: lockScreenUi.clCardBg
                 clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                 clPrimary: lockScreenUi.clPrimary
             }
@@ -676,7 +678,7 @@ Item {
                     width: parent.pillWidth; height: parent.implicitHeight
                     anchors.horizontalCenter: parent.horizontalCenter
                     radius: height / 2
-                    color: lockScreenUi.clSurfaceContainer
+                    color: lockScreenUi.clCardBg
                     Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.InOutCubic } }
 
                     MouseArea {
