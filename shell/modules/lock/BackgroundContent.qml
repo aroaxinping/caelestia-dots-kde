@@ -12,6 +12,9 @@ Item {
     required property bool isPortrait
     required property real lockHeight
 
+    readonly property real centerScale: Math.min(1, lockHeight / 1440)
+    readonly property int centerGap: Tokens.sizes.lock.centerWidth * centerScale
+
     // Portrait layout
     ColumnLayout {
         anchors.fill: parent
@@ -29,7 +32,10 @@ Item {
             }
         }
 
-
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.centerGap
+        }
 
         ColumnLayout {
             Layout.fillWidth: true
@@ -110,7 +116,11 @@ Item {
             }
         }
 
-
+        Item {
+            Layout.preferredWidth: root.centerGap
+            Layout.fillWidth: false
+            Layout.fillHeight: true
+        }
 
         ColumnLayout {
             Layout.fillWidth: true
