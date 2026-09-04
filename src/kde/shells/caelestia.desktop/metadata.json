@@ -1,7 +1,8 @@
 {
-    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPackageStructure": "Plasma/Shell",
+    "X-Plasma-APIVersion": "2",
     "KPlugin": {
-        "Id": "caelestia.lockscreen",
+        "Id": "caelestia.desktop",
         "Name": "Caelestia Lock Screen",
         "Description": "A minimal, transparent lock screen greeter designed to overlay Caelestia's PlasmaApplicationWallpaper background.",
         "Authors": [{ "Name": "ladybug-me" }],

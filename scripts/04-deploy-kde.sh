@@ -82,13 +82,19 @@ ok "Cliphist background service enabled."
 
 #  Caelestia Lock Screen Greeter
 info "Installing Caelestia lock screen greeter..."
-LNF_SRC="$BUNDLE_DIR/src/kde/look-and-feel/caelestia.lockscreen"
-LNF_DEST="$HOME/.local/share/plasma/look-and-feel/caelestia.lockscreen"
-if [[ -d "$LNF_SRC" ]]; then
-    mkdir -p "$(dirname "$LNF_DEST")"
-    rm -rf "$LNF_DEST"
-    cp -r "$LNF_SRC" "$LNF_DEST"
-    kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" "caelestia.lockscreen"
+SHELL_SRC="$BUNDLE_DIR/src/kde/shells/caelestia.desktop"
+SHELL_DEST="$HOME/.local/share/plasma/shells/caelestia.desktop"
+if [[ -d "$SHELL_SRC" ]]; then
+    mkdir -p "$(dirname "$SHELL_DEST")"
+    rm -rf "$SHELL_DEST"
+    cp -r "$SHELL_SRC" "$SHELL_DEST"
+    
+    # Remove old look-and-feel config if present
+    kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" --delete 2>/dev/null || true
+    
+    # Set the new shell package
+    kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelestia.desktop"
+    
     ok "Caelestia lock screen greeter installed."
 else
     skip "Lock screen greeter source not found."
