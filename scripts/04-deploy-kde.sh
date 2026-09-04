@@ -25,7 +25,14 @@ echo ""
 if [[ "${APPLY_DARKLY:-true}" == "true" ]]; then
     #  Darkly: Plasma style 
     info "Applying Darkly plasma style..."
-    kwriteconfig6 --file plasmarc --group "Theme" --key "name" "Darkly" 2>/dev/null || true
+    kwriteconfig6 --file plasmarc --group "Theme" --key "name" "darkly" 2>/dev/null || true
+
+    # Ensure desktoptheme path is resolvable regardless of case
+    if [[ -d "/usr/share/plasma/desktoptheme/darkly" ]]; then
+        mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/desktoptheme"
+        ln -sfn "/usr/share/plasma/desktoptheme/darkly" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/desktoptheme/Darkly" 2>/dev/null || true
+        ln -sfn "/usr/share/plasma/desktoptheme/darkly" "${XDG_DATA_HOME:-$HOME/.local/share}/plasma/desktoptheme/darkly" 2>/dev/null || true
+    fi
 
     #  Darkly: Application style (Qt widget style) 
     info "Applying Darkly application style..."
@@ -49,8 +56,10 @@ fi
 if [[ "${APPLY_FONTS:-true}" == "true" ]]; then
     if command -v lookandfeeltool >/dev/null 2>&1; then
         if [[ "${APPLY_DARKLY:-true}" == "true" ]]; then
-            info "Applying custom fonts and LNF via lookandfeeltool..."
-            lookandfeeltool --apply "Darkly" 2>/dev/null || true
+            if lookandfeeltool --list 2>/dev/null | grep -qi "^darkly$"; then
+                info "Applying custom fonts and LNF via lookandfeeltool..."
+                lookandfeeltool --apply "Darkly" 2>/dev/null || true
+            fi
         else
             skip "Skipping Darkly LNF as Darkly theme was opted out. (Fonts must be applied manually)"
         fi
