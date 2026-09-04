@@ -9,65 +9,122 @@ import QtQuick.Layouts
 ColumnLayout {
     id: root
 
-    property bool use12h: false
+    property bool use12h: true
     property real centerScale: 1.0
 
+    property color clPrimary: "#c2c1ff"
+    property color clSecondary: "#c6c4e0"
+    property color clSurfaceContainerHigh: "#2a292e"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
 
+    property var currentTime: new Date()
+
+    FontLoader {
+        id: gsfFont
+        source: "../../fonts/GoogleSansFlex.ttf"
+    }
+
+    readonly property string clockFontFamily: gsfFont.status === FontLoader.Ready && gsfFont.name.length > 0 ? gsfFont.name : (gsfFont.name.length > 0 ? gsfFont.name : "Google Sans Flex")
+
+    function calcTopOff(metrics) {
+        return metrics.tightBoundingRect.y - metrics.boundingRect.y;
+    }
+
     spacing: 20 * centerScale
 
-    Row {
+    Item {
+        id: clockDisplay
         Layout.alignment: Qt.AlignHCenter
-        Layout.topMargin: 16 * centerScale
-        spacing: 4 * centerScale
+
+        implicitWidth: hours.implicitWidth + minutes.implicitWidth + (8 * root.centerScale)
+        implicitHeight: hourMetrics.tightBoundingRect.height
 
         Text {
-            id: hoursText
-            text: formatHours(new Date())
-            font { pixelSize: 180 * root.centerScale; weight: Font.Thin; family: "Outfit" }
-            color: root.clSurfaceFg
-
-            function formatHours(d) {
-                var h = d.getHours();
-                if (root.use12h) { h = h % 12; if (h === 0) h = 12; }
+            id: hours
+            y: -root.calcTopOff(hourMetrics)
+            text: {
+                var h = root.currentTime.getHours();
+                if (root.use12h) {
+                    h = h % 12;
+                    if (h === 0) h = 12;
+                }
                 return h < 10 ? "0" + h : "" + h;
             }
+            color: root.clPrimary
+            font {
+                family: root.clockFontFamily
+                pointSize: Math.max(1, Math.round(90 * root.centerScale))
+                weight: Font.Normal
+                variableAxes: ({ "wdth": 30 })
+            }
+
+            TextMetrics {
+                id: hourMetrics
+                text: hours.text
+                font: hours.font
+            }
         }
 
-        Column {
-            anchors.top: hoursText.top
-            anchors.topMargin: 24 * root.centerScale
-            spacing: -18 * root.centerScale
+        Text {
+            id: minutes
+            anchors.right: parent.right
+            y: -root.calcTopOff(minuteMetrics)
+            text: {
+                var m = root.currentTime.getMinutes();
+                return m < 10 ? "0" + m : "" + m;
+            }
+            color: root.clSecondary
+            font {
+                family: root.clockFontFamily
+                pointSize: Math.max(1, Math.round((root.use12h ? 49 : 90) * root.centerScale))
+                weight: Font.Normal
+                variableAxes: ({ "wdth": 30 })
+            }
+
+            TextMetrics {
+                id: minuteMetrics
+                text: minutes.text
+                font: minutes.font
+            }
+        }
+
+        Rectangle {
+            id: amPmBadge
+            anchors.left: minutes.left
+            anchors.leftMargin: minuteMetrics.tightBoundingRect.x
+            y: hourMetrics.tightBoundingRect.height - implicitHeight
+            visible: root.use12h
+            color: Qt.rgba(root.clSurfaceContainerHigh.r, root.clSurfaceContainerHigh.g, root.clSurfaceContainerHigh.b, 0.45)
+            radius: 16 * root.centerScale
+
+            implicitWidth: minuteMetrics.tightBoundingRect.width
+            implicitHeight: amPmMetrics.tightBoundingRect.height + (32 * root.centerScale)
 
             Text {
-                id: minutesText
-                text: formatMinutes(new Date())
-                font { pixelSize: 70 * root.centerScale; weight: Font.Thin; family: "Outfit" }
-                color: root.clSurfaceVariantFg
-
-                function formatMinutes(d) {
-                    var m = d.getMinutes();
-                    return m < 10 ? "0" + m : "" + m;
+                id: amPm
+                anchors.centerIn: parent
+                width: amPmMetrics.tightBoundingRect.width
+                height: amPmMetrics.tightBoundingRect.height
+                transform: Translate {
+                    x: -amPmMetrics.tightBoundingRect.x
+                    y: -root.calcTopOff(amPmMetrics)
                 }
-            }
 
-            Text {
-                id: ampmLabel
-                visible: root.use12h
-                text: new Date().getHours() >= 12 ? "PM" : "AM"
-                font { pixelSize: 28 * root.centerScale; weight: Font.DemiBold; family: "Outfit" }
-                color: root.clSurfaceVariantFg
-            }
-        }
+                text: root.currentTime.getHours() >= 12 ? "PM" : "AM"
+                color: root.clSurfaceFg
+                font {
+                    family: root.clockFontFamily
+                    pointSize: Math.max(1, Math.round(25 * root.centerScale))
+                    weight: Font.Normal
+                    variableAxes: ({ "wdth": 30 })
+                }
 
-        Timer {
-            interval: 1000; running: true; repeat: true
-            onTriggered: {
-                var now = new Date();
-                hoursText.text = hoursText.formatHours(now);
-                minutesText.text = minutesText.formatMinutes(now);
-                if (root.use12h) ampmLabel.text = now.getHours() >= 12 ? "PM" : "AM";
+                TextMetrics {
+                    id: amPmMetrics
+                    text: amPm.text
+                    font: amPm.font
+                }
             }
         }
     }
@@ -75,13 +132,19 @@ ColumnLayout {
     Text {
         id: dateText
         Layout.alignment: Qt.AlignHCenter
-        text: Qt.formatDate(new Date(), "dddd • d MMM").toUpperCase()
-        font { pixelSize: 18 * root.centerScale; weight: Font.DemiBold; letterSpacing: 1.2; family: "Outfit" }
-        color: root.clSurfaceFg
-
-        Timer {
-            interval: 60000; running: true; repeat: true
-            onTriggered: dateText.text = Qt.formatDate(new Date(), "dddd • d MMM").toUpperCase()
+        text: Qt.formatDate(root.currentTime, "dddd • d MMM").toUpperCase()
+        font {
+            family: root.clockFontFamily
+            pointSize: Math.max(1, Math.round(17 * root.centerScale))
+            weight: Font.DemiBold
         }
+        color: root.clSurfaceFg
+    }
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: root.currentTime = new Date()
     }
 }

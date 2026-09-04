@@ -29,8 +29,7 @@ Item {
     readonly property real centerScale: Math.min(1, Math.min(width, height) / 1440)
     readonly property real centerWidth: 600 * centerScale
     readonly property bool isPortrait: height > width * 1.2
-    readonly property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).indexOf("AP") !== -1
-                                || Qt.locale().timeFormat(Locale.ShortFormat).indexOf("ap") !== -1
+    readonly property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
 
     // Material You palette — defaults from Catppuccin Mocha,
     // overridden by scheme.json at lock time via DataSource below.
@@ -432,6 +431,9 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         use12h: lockScreenUi.use12h
                         centerScale: lockScreenUi.centerScale
+                        clPrimary: lockScreenUi.clPrimary
+                        clSecondary: lockScreenUi.clSecondary
+                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                     }
@@ -602,54 +604,15 @@ Item {
                     }
                 }
 
-                ColumnLayout {
-                    spacing: 4 * lockScreenUi.centerScale
-
-                    Row {
-                        spacing: 6 * lockScreenUi.centerScale
-                        Text {
-                            id: portraitHours
-                            text: Qt.formatTime(new Date(), lockScreenUi.use12h ? "hh" : "HH")
-                            font { pixelSize: 120 * lockScreenUi.centerScale; weight: Font.Medium; family: "Rubik" }
-                            color: lockScreenUi.clPrimary
-                        }
-                        Text {
-                            text: ":"
-                            font { pixelSize: 120 * lockScreenUi.centerScale; weight: Font.Medium; family: "Rubik" }
-                            color: lockScreenUi.clPrimary
-                            anchors.baseline: portraitHours.baseline
-                        }
-                        Text {
-                            id: portraitMinutes
-                            text: Qt.formatTime(new Date(), "mm")
-                            font {
-                                pixelSize: (lockScreenUi.use12h ? 70 : 120) * lockScreenUi.centerScale
-                                weight: Font.Medium; family: "Rubik"
-                            }
-                            color: lockScreenUi.clSecondary
-                            anchors.baseline: portraitHours.baseline
-                        }
-
-                        Timer {
-                            interval: 1000; running: true; repeat: true
-                            onTriggered: {
-                                var now = new Date();
-                                portraitHours.text = Qt.formatTime(now, lockScreenUi.use12h ? "hh" : "HH");
-                                portraitMinutes.text = Qt.formatTime(now, "mm");
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: portraitDateText
-                        text: Qt.formatDate(new Date(), "dddd • d MMM").toUpperCase()
-                        font { pixelSize: 14 * lockScreenUi.centerScale; weight: Font.DemiBold; letterSpacing: 1.0; family: "Rubik" }
-                        color: lockScreenUi.clSurfaceFg
-                        Timer {
-                            interval: 60000; running: true; repeat: true
-                            onTriggered: portraitDateText.text = Qt.formatDate(new Date(), "dddd • d MMM").toUpperCase()
-                        }
-                    }
+                ClockWidget {
+                    Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                    use12h: lockScreenUi.use12h
+                    centerScale: lockScreenUi.centerScale
+                    clPrimary: lockScreenUi.clPrimary
+                    clSecondary: lockScreenUi.clSecondary
+                    clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                    clSurfaceFg: lockScreenUi.clSurfaceFg
+                    clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                 }
             }
 
