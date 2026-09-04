@@ -183,9 +183,9 @@ jobs:
 
   # ═══════════════════════════════════════════════════════════
   # Precompile the Caelestia shell (the C++ QML plugin modules and
-  # M3Shapes) so a fresh install downloads the .so files instead of
-  # compiling Qt6/C++ on the user's machine. Attached to the version
-  # release, not the caelestia-bin-repo tag.
+  # M3Shapes) so a fresh install can download the .so files instead
+  # of compiling Qt6/C++ on the user's machine. Attached to the
+  # version release, not the caelestia-bin-repo tag.
   #
   # Built against Arch's Qt/KF so the artifacts match the primary
   # target distro's ABI. The KWin effect is deliberately excluded:
@@ -200,44 +200,50 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install shell build dependencies
+      - name: Install Shell Build Dependencies
         run: |
+          set -euo pipefail
           pacman -Syu --noconfirm --needed git github-cli cmake ninja \
             qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-tools \
             kwindowsystem kguiaddons kglobalaccel kconfig networkmanager-qt pulseaudio-qt \
             libqalculate pipewire aubio cava lm_sensors extra-cmake-modules
 
-      - name: Load release tag
+      - name: Load Release Tag
         run: |
           set -euo pipefail
           source .github/version.env
           echo "TAG=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Configure shell
+      - name: Configure Shell
         run: |
+          set -euo pipefail
           cmake -G Ninja -B shell/build -S shell -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DINSTALL_QSCONFDIR=etc/xdg/quickshell/caelestia \
             -DINSTALL_LIBDIR=lib/caelestia \
             -DINSTALL_QMLDIR=lib/qt6/qml
 
-      - name: Build shell
-        run: cmake --build shell/build -j"$(nproc)"
-
-      - name: Stage compiled artifacts
+      - name: Build Shell
         run: |
+          set -euo pipefail
+          cmake --build shell/build -j"$(nproc)"
+
+      - name: Stage Compiled Artifacts
+        run: |
+          set -euo pipefail
           DESTDIR="$PWD/stage" cmake --install shell/build
           mkdir -p dist
           tar -C stage/usr -czf dist/caelestia-shell-x86_64.tar.gz \
             lib/qt6/qml/Caelestia lib/qt6/qml/M3Shapes lib/caelestia/version
 
-      - name: Attach shell artifacts to release
+      - name: Attach Shell Artifacts to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           gh release upload "$TAG" dist/caelestia-shell-x86_64.tar.gz --clobber
 
   # ═══════════════════════════════════════════════════════════
@@ -262,29 +268,32 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install Build Dependencies
         run: |
+          set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq cmake g++ make
 
-      - name: Load release tag
+      - name: Load Release Tag
         run: |
           set -euo pipefail
           source .github/version.env
           echo "TAG=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Build installer TUI
+      - name: Build Installer TUI
         run: |
+          set -euo pipefail
           cmake -B installer/build -DCMAKE_BUILD_TYPE=Release installer
           cmake --build installer/build -- -j"$(nproc)"
 
-      - name: Attach prebuilt installer to release
+      - name: Attach Prebuilt Installer to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           TUI_VERSION="$(tr -d '[:space:]' < installer/tui.version)"
           cp installer/build/caelestia-install "caelestia-install-${{ matrix.arch }}-v${TUI_VERSION}"
           gh release upload "$TAG" "caelestia-install-${{ matrix.arch }}-v${TUI_VERSION}" --clobber
