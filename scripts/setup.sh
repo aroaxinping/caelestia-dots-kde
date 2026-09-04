@@ -168,8 +168,7 @@ tui_version() {
 }
 
 # The release tag this checkout corresponds to. The prebuilt installer is
-# attached to the release for this VERSION, not the fixed caelestia-bin-repo
-# tag (that tag now only carries the binary pacman repo).
+# attached to the release for this VERSION.
 release_tag() {
     sed -nE 's/^[[:space:]]*VERSION=//p' "$BUNDLE_DIR/.github/version.env" 2>/dev/null | tr -d '[:space:]'
 }

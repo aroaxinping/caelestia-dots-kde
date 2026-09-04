@@ -185,8 +185,7 @@ jobs:
   # Precompile the Caelestia shell (the C++ QML plugin modules and
   # M3Shapes) and bundle them with the shell QML source, so a fresh
   # install can download the compiled .so files instead of building
-  # Qt6/C++ on the user's machine. Attached to the version release,
-  # not the caelestia-bin-repo tag.
+  # Qt6/C++ on the user's machine. Attached to the version release.
   #
   # Built against Arch's Qt/KF. The asset name embeds the Qt feature
   # version, so a machine on a different Qt misses the asset and falls
@@ -255,9 +254,8 @@ jobs:
   # ═══════════════════════════════════════════════════════════
   # Prebuilt installer TUI binaries (x86_64 + aarch64) so setup.sh
   # can download instead of compiling the TUI on the user's machine.
-  # Migrated here from prebuilt-artifacts.yml: these are versioned
-  # executables, so they belong on the version release rather than
-  # the fixed caelestia-bin-repo tag.
+  # These are versioned executables, so they belong on the version
+  # release.
   # ═══════════════════════════════════════════════════════════
   build-installer:
     name: Build installer TUI (${{ matrix.arch }})
