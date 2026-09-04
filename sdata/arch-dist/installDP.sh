@@ -29,7 +29,7 @@ fi
 PACKAGE_GROUP="${PACKAGE_GROUP:-all}"
 
 CORE_PACKAGES=(
-    cmake ninja ccache
+    cmake ninja ccache qt6-tools
     wl-clipboard cliphist wl-clip-persist inotify-tools app2unit wireplumber trash-cli jq aubio lm_sensors
     libpipewire glibc qt6-declarative gcc-libs qt6-base qt6-declarative qt6-wayland libqalculate kpipewire kglobalaccel kglobalacceld libsecret ksshaskpass
     networkmanager-qt vulkan-headers
@@ -76,71 +76,26 @@ if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
     fi
 fi
 
-# libcava is installed only via package managers: it is prebuilt by CI into a
-# binary repo hosted on GitHub Releases (see
-# .github/workflows/prebuilt-artifacts.yml) and falls back to the AUR package
-# when the repo is unreachable. It is never compiled from source on the
-# machine. Darkly is installed prebuilt (own binary repo, or the darkly-bin
-# AUR package) so it is never compiled on the machine.
-PREBUILT_PKGS=()
+# libcava and darkly are installed from the AUR. Darkly is published as the
+# prebuilt darkly-bin package, so it is never compiled on the machine; libcava
+# has no -bin package and compiles from source.
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "core" ]]; then
-    PREBUILT_PKGS+=(libcava)
+    PACKAGES+=(libcava)
 fi
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
     if [[ "$INSTALL_DARKLY" == "true" ]]; then
-        PREBUILT_PKGS+=(darkly)
+        PACKAGES+=(darkly-bin)
     else
         log "Skipping Darkly package installation by user choice."
     fi
 fi
 
-# Map a binary-repo package name to the AUR package to install when the binary
-# repo is unreachable. Darkly is published to the AUR as darkly-bin (prebuilt),
-# so we install that instead of compiling the darkly source package.
-aur_pkg_for() {
-    case "$1" in
-        darkly) echo "darkly-bin" ;;
-        *)      echo "$1" ;;
-    esac
-}
-
-BIN_REPO_NAME="caelestia-bin"
-BIN_REPO_URL="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/caelestia-bin-repo"
-
-install_from_binary_repo() {
-    if ! grep -q "^\[$BIN_REPO_NAME\]" /etc/pacman.conf 2>/dev/null; then
-        {
-            echo ""
-            echo "[$BIN_REPO_NAME]"
-            echo "SigLevel = Optional"
-            echo "Server = $BIN_REPO_URL"
-            echo ""
-        } | sudo tee -a /etc/pacman.conf >/dev/null
-    fi
-    sudo pacman -Sy --noconfirm >/dev/null 2>&1
-}
-
-if [[ ${#PREBUILT_PKGS[@]} -gt 0 ]] && [[ -z "${CAELESTIA_SKIP_BINARY_REPO:-}" ]]; then
-    if install_from_binary_repo; then
-        for pkg in "${PREBUILT_PKGS[@]}"; do
-            if sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1; then
-                log "Installed $pkg from the prebuilt repo."
-            else
-                log "Prebuilt $pkg unavailable; installing from the AUR."
-                PACKAGES+=("$(aur_pkg_for "$pkg")")
-            fi
-        done
-    else
-        log "Prebuilt repo unreachable; installing from the AUR instead."
-        for pkg in "${PREBUILT_PKGS[@]}"; do
-            PACKAGES+=("$(aur_pkg_for "$pkg")")
-        done
-        sudo sed -i "/^\[$BIN_REPO_NAME\]/,/^$/d" /etc/pacman.conf
-    fi
-elif [[ ${#PREBUILT_PKGS[@]} -gt 0 ]]; then
-    for pkg in "${PREBUILT_PKGS[@]}"; do
-        PACKAGES+=("$(aur_pkg_for "$pkg")")
-    done
+# Older installs registered a caelestia-bin pacman repo that pointed at the
+# now-deleted caelestia-bin-repo GitHub release. Drop any stale entry so
+# `pacman -Sy` does not fail against the dead Server URL.
+if grep -q '^\[caelestia-bin\]' /etc/pacman.conf 2>/dev/null; then
+    log "Removing stale caelestia-bin repo entry from pacman.conf..."
+    sudo sed -i '/^\[caelestia-bin\]/,/^$/d' /etc/pacman.conf
 fi
 
 log "Installing packages (group: $PACKAGE_GROUP)..."

@@ -150,9 +150,7 @@ if [ "$CURRENT_BRANCH" = "main" ]; then
     [ -n "$FROM_VERSION" ] || FROM_VERSION="unknown"
     FROM_VERSION="$(normalize_version "$FROM_VERSION")"
 
-    # caelestia-bin-repo is the GitHub release tag that publishes prebuilt
-    # binaries, not a version of the shell — keep it out of the version list.
-    TAG_LINES="$(git -C "$REPO" for-each-ref --sort=-creatordate --format='%(refname:short)|%(creatordate:iso8601-strict)' refs/tags 2>/dev/null | grep -v '^caelestia-bin-repo|' || true)"
+    TAG_LINES="$(git -C "$REPO" for-each-ref --sort=-creatordate --format='%(refname:short)|%(creatordate:iso8601-strict)' 'refs/tags/v*' 2>/dev/null || true)"
     LATEST_VERSION="$(printf '%s\n' "$TAG_LINES" | sed -n '1s/|.*//p')"
     PREVIOUS_VERSION="$(printf '%s\n' "$TAG_LINES" | sed -n '2s/|.*//p')"
     [ -n "$LATEST_VERSION" ] || LATEST_VERSION="$FROM_VERSION"
@@ -231,7 +229,7 @@ def fetch_releases() -> list:
         return []
 
 try:
-    raw_tags = run_git("for-each-ref", "--sort=-creatordate", "--format=%(refname:short)|%(creatordate:iso8601-strict)", "refs/tags")
+    raw_tags = run_git("for-each-ref", "--sort=-creatordate", "--format=%(refname:short)|%(creatordate:iso8601-strict)", "refs/tags/v*")
 except Exception:
     raise SystemExit(0)
 
@@ -241,8 +239,7 @@ for line in (raw_tags or "").splitlines():
         continue
     tag, created = line.split("|", 1)
     tag = tag.strip()
-    # caelestia-bin-repo publishes prebuilt binaries, not shell versions.
-    if tag and tag != "caelestia-bin-repo":
+    if tag:
         tags.append({"tag": tag, "created": created.strip()})
 
 if not tags:
