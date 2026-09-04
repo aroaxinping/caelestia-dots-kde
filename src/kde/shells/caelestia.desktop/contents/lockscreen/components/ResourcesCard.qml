@@ -5,6 +5,9 @@
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
+import M3Shapes
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: root
@@ -20,187 +23,169 @@ Rectangle {
 
     property real centerScale: 1.0
 
+    property color clSurface: "#131317"
     property color clSurfaceContainerHigh: "#2a292e"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
     property color clSecondary: "#c6c4e0"
+    property color clError: "#ffb4ab"
 
     radius: 20 * centerScale
     color: "transparent"
 
     RowLayout {
         anchors.fill: parent
-        spacing: 4 * centerScale
+        spacing: 12 * centerScale
 
-        // CPU Polygon (Points Left)
-        Item {
+        // CPU Resource (MaterialShape.Pentagon)
+        ResourceItem {
+            id: cpu
             Layout.fillWidth: true
             Layout.fillHeight: true
+            centerScale: root.centerScale
+            icon: "memory"
+            value: root.liveCpu + "%"
+            shapeType: MaterialShape.Pentagon
+            shapeColor: root.clSurfaceContainerHigh
+            fillColor: Qt.rgba(root.clPrimary.r, root.clPrimary.g, root.clPrimary.b, 0.38)
+            fillPercent: Math.max(0, Math.min(1.0, root.cpuPercentage))
+            clSurfaceFg: root.clSurfaceFg
+            clSurfaceVariantFg: root.clSurfaceVariantFg
 
-            Canvas {
-                id: cpuCanvas
-                anchors.fill: parent
-                Connections {
-                    target: root
-                    function onLiveCpuChanged() { cpuCanvas.requestPaint(); }
-                    function onCpuPercentageChanged() { cpuCanvas.requestPaint(); }
-                }
-                onPaint: {
-                    var ctx = getContext("2d"); var w = width; var h = height;
-                    ctx.beginPath(); ctx.moveTo(w*0.3, 0); ctx.lineTo(w, 0); ctx.lineTo(w*0.8, h); ctx.lineTo(w*0.3, h); ctx.lineTo(0, h*0.5); ctx.closePath();
-                    ctx.fillStyle = root.clSurfaceContainerHigh; ctx.fill();
+            MaterialShape {
+                id: tempBadge
+                x: cpu.mShape.pointAtAngle(45).x - implicitSize / 2 + 8 * root.centerScale
+                y: cpu.mShape.pointAtAngle(45).y - implicitSize / 2
+                shape: root.liveTemp > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
+                color: root.liveTemp > 90 ? root.clError : Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.25)
+                implicitSize: 28 * root.centerScale
 
-                    ctx.save();
-                    ctx.clip();
-
-                    var fillPercent = Math.max(0, Math.min(1.0, root.cpuPercentage));
-                    var waveHeight = h * 0.08;
-                    var startY = h - (h * fillPercent);
-                    ctx.beginPath();
-                    ctx.moveTo(0, h); ctx.lineTo(w, h); ctx.lineTo(w, startY);
-                    ctx.bezierCurveTo(w*0.75, startY - waveHeight, w*0.25, startY + waveHeight, 0, startY);
-                    ctx.closePath();
-
-                    ctx.fillStyle = Qt.rgba(root.clPrimary.r, root.clPrimary.g, root.clPrimary.b, 0.4);
-                    ctx.fill();
-                    ctx.restore();
+                Text {
+                    anchors.centerIn: parent
+                    text: root.liveTemp + "°C"
+                    font { pixelSize: 10 * root.centerScale; family: "Outfit"; weight: Font.Medium }
+                    color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
+        }
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 2 * centerScale
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "memory"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * centerScale
-                    color: root.clSurfaceVariantFg
+        // RAM Resource (MaterialShape.Slanted)
+        ResourceItem {
+            id: ram
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            centerScale: root.centerScale
+            icon: "memory_alt"
+            value: root.liveRam + "%"
+            shapeType: MaterialShape.Slanted
+            shapeColor: root.clSurfaceContainerHigh
+            fillColor: Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.38)
+            fillPercent: Math.max(0, Math.min(1.0, root.memoryPercentage))
+            clSurfaceFg: root.clSurfaceFg
+            clSurfaceVariantFg: root.clSurfaceVariantFg
+        }
+
+        // Storage Resource (MaterialShape.Gem)
+        ResourceItem {
+            id: disk
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            centerScale: root.centerScale
+            icon: "hard_disk"
+            value: root.liveDisk + "%"
+            shapeType: MaterialShape.Gem
+            shapeColor: root.clSurfaceContainerHigh
+            fillColor: Qt.rgba(root.clSurfaceFg.r, root.clSurfaceFg.g, root.clSurfaceFg.b, 0.22)
+            fillPercent: Math.max(0, Math.min(1.0, root.storagePercentage))
+            clSurfaceFg: root.clSurfaceFg
+            clSurfaceVariantFg: root.clSurfaceVariantFg
+        }
+    }
+
+    component ResourceItem: Item {
+        id: res
+
+        property real centerScale: 1.0
+        property string icon: ""
+        property string value: ""
+        property int shapeType: MaterialShape.Circle
+        property color shapeColor: "#2a292e"
+        property color fillColor: "cyan"
+        property real fillPercent: 0.0
+        property color clSurfaceFg: "#e5e1e7"
+        property color clSurfaceVariantFg: "#c8c5d1"
+
+        readonly property alias mShape: shape
+
+        MaterialShape {
+            id: shape
+            anchors.fill: parent
+            shape: res.shapeType
+            color: res.shapeColor
+        }
+
+        Item {
+            anchors.fill: shape
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: shape
+            }
+
+            Shape {
+                id: wave
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: Math.max(0, Math.min(parent.height, parent.height * res.fillPercent))
+                visible: height > 0
+
+                ShapePath {
+                    strokeWidth: 0
+                    strokeColor: "transparent"
+                    fillColor: res.fillColor
+
+                    PathSvg {
+                        path: {
+                            const w = wave.width;
+                            const h = wave.height;
+                            if (w <= 0 || h <= 0) return "";
+                            const a = 2.5 * res.centerScale;
+                            const n = 3;
+                            const wl = w / n;
+                            const half = wl / 2;
+
+                            let d = `M 0,${a} `;
+                            for (let i = 0; i < n; ++i) {
+                                const x = i * wl;
+                                d += `Q ${x + half / 2},${-a} ${x + half},${a} `;
+                                d += `Q ${x + half + half / 2},${3 * a} ${x + wl},${a} `;
+                            }
+                            d += `L ${w},${h} L 0,${h} Z`;
+                            return d;
+                        }
+                    }
                 }
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: root.liveCpu + "%"
-                    font { pixelSize: 14 * centerScale; family: "Outfit" }
-                    color: root.clSurfaceFg
-                }
+            }
+        }
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 2 * res.centerScale
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: res.icon
+                font.family: "Material Symbols Rounded"
+                font.pixelSize: 20 * res.centerScale
+                color: res.clSurfaceVariantFg
             }
 
             Text {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 8 * centerScale
-                text: root.liveTemp + "°C"
-                font { pixelSize: 10 * centerScale; family: "Outfit" }
-                color: root.clSurfaceVariantFg
-            }
-        }
-
-        // RAM Polygon (Inverted Trapezoid)
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            Canvas {
-                id: ramCanvas
-                anchors.fill: parent
-                Connections {
-                    target: root
-                    function onLiveRamChanged() { ramCanvas.requestPaint(); }
-                    function onMemoryPercentageChanged() { ramCanvas.requestPaint(); }
-                }
-                onPaint: {
-                    var ctx = getContext("2d"); var w = width; var h = height;
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w*0.8, h); ctx.lineTo(w*0.2, h); ctx.closePath();
-                    ctx.fillStyle = root.clSurfaceContainerHigh; ctx.fill();
-
-                    ctx.save();
-                    ctx.clip();
-
-                    var fillPercent = Math.max(0, Math.min(1.0, root.memoryPercentage));
-                    var waveHeight = h * 0.08;
-                    var startY = h - (h * fillPercent);
-                    ctx.beginPath();
-                    ctx.moveTo(0, h); ctx.lineTo(w, h); ctx.lineTo(w, startY);
-                    ctx.bezierCurveTo(w*0.75, startY + waveHeight, w*0.25, startY - waveHeight, 0, startY);
-                    ctx.closePath();
-
-                    ctx.fillStyle = Qt.rgba(root.clSecondary.r, root.clSecondary.g, root.clSecondary.b, 0.4);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
-
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 2 * centerScale
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "memory_alt"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * centerScale
-                    color: root.clSurfaceVariantFg
-                }
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: root.liveRam + "%"
-                    font { pixelSize: 14 * centerScale; family: "Outfit" }
-                    color: root.clSurfaceFg
-                }
-            }
-        }
-
-        // Storage Polygon (Points Right)
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            Canvas {
-                id: diskCanvas
-                anchors.fill: parent
-                Connections {
-                    target: root
-                    function onLiveDiskChanged() { diskCanvas.requestPaint(); }
-                    function onStoragePercentageChanged() { diskCanvas.requestPaint(); }
-                }
-                onPaint: {
-                    var ctx = getContext("2d"); var w = width; var h = height;
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(w*0.7, 0); ctx.lineTo(w, h*0.5); ctx.lineTo(w*0.7, h); ctx.lineTo(w*0.2, h); ctx.closePath();
-                    ctx.fillStyle = root.clSurfaceContainerHigh; ctx.fill();
-
-                    ctx.save();
-                    ctx.clip();
-
-                    var fillPercent = Math.max(0, Math.min(1.0, root.storagePercentage));
-                    var waveHeight = h * 0.08;
-                    var startY = h - (h * fillPercent);
-                    ctx.beginPath();
-                    ctx.moveTo(0, h); ctx.lineTo(w, h); ctx.lineTo(w, startY);
-                    ctx.bezierCurveTo(w*0.75, startY - waveHeight, w*0.25, startY + waveHeight, 0, startY);
-                    ctx.closePath();
-
-                    ctx.fillStyle = Qt.rgba(root.clSurfaceFg.r, root.clSurfaceFg.g, root.clSurfaceFg.b, 0.2);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
-
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 2 * centerScale
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "hard_disk"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * centerScale
-                    color: root.clSurfaceVariantFg
-                }
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: root.liveDisk + "%"
-                    font { pixelSize: 14 * centerScale; family: "Outfit" }
-                    color: root.clSurfaceFg
-                }
+                Layout.alignment: Qt.AlignHCenter
+                text: res.value
+                font { pixelSize: 14 * res.centerScale; family: "Outfit"; weight: Font.Medium }
+                color: res.clSurfaceFg
             }
         }
     }
