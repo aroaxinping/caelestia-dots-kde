@@ -5,6 +5,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.private.sessions
 import ".."
@@ -24,12 +25,10 @@ Item {
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
     property color clPrimaryFg: "#2a2a60"
+    property color clSecondary: "#c6c4e0"
 
     property alias text: passwordBox.text
     property real shakeX: 0
-    property real pillWidth: passwordBox.text.length > 0
-        ? root.centerWidth * 0.82
-        : root.centerWidth * 0.58
 
     signal loginRequested(string password)
 
@@ -47,9 +46,41 @@ Item {
         passwordBox.text = Qt.binding(() => PasswordSync.password);
     }
 
-    implicitWidth: pillWidth
-    implicitHeight: 60 * centerScale
+    readonly property var shapeQueue: {
+        var shapes = [
+            MaterialShape.Slanted, MaterialShape.Arch, MaterialShape.Fan, MaterialShape.Arrow,
+            MaterialShape.SemiCircle, MaterialShape.Triangle, MaterialShape.Diamond, MaterialShape.ClamShell,
+            MaterialShape.Pentagon, MaterialShape.Gem, MaterialShape.Sunny, MaterialShape.VerySunny,
+            MaterialShape.Cookie4Sided, MaterialShape.Ghostish, MaterialShape.SoftBurst
+        ];
+        for (var i = shapes.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = shapes[i];
+            shapes[i] = shapes[j];
+            shapes[j] = tmp;
+        }
+        return shapes;
+    }
+
+    TextMetrics {
+        id: placeholderMetrics
+        text: root.isAuthenticating ? qsTr("Loading...") : qsTr("Enter your password")
+        font { pixelSize: 14 * root.centerScale; family: "Outfit"; weight: Font.Normal }
+    }
+
+    readonly property real collapsedWidth: Math.min(
+        root.centerWidth * 0.82,
+        placeholderMetrics.width + (130 * root.centerScale)
+    )
+    readonly property real expandedWidth: root.centerWidth * 0.82
+
+    implicitWidth: passwordBox.text.length > 0 ? expandedWidth : collapsedWidth
+    implicitHeight: 60 * root.centerScale
     transform: Translate { x: root.shakeX }
+
+    Behavior on implicitWidth {
+        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+    }
 
     SequentialAnimation {
         id: rejectAnim
@@ -60,29 +91,29 @@ Item {
     }
 
     Rectangle {
-        id: pillRect
-        width: root.pillWidth
-        height: parent.implicitHeight
-        anchors.horizontalCenter: parent.horizontalCenter
+        id: pillBg
+        anchors.fill: parent
         radius: height / 2
         color: root.clSurfaceContainer
-        Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.InOutCubic } }
 
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.IBeamCursor
-            onClicked: root.forceActiveFocus()
+            onClicked: passwordBox.forceActiveFocus()
         }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 14 * root.centerScale
+            anchors.leftMargin: 16 * root.centerScale
             anchors.rightMargin: 8 * root.centerScale
-            spacing: 10 * root.centerScale
+            spacing: 12 * root.centerScale
 
+            // Left: Lock / Fingerprint Icon / Spinner
             Item {
-                Layout.fillHeight: true
-                implicitWidth: height
+                id: iconWrapper
+                Layout.preferredWidth: 32 * root.centerScale
+                Layout.preferredHeight: 32 * root.centerScale
+                Layout.alignment: Qt.AlignVCenter
 
                 Text {
                     anchors.centerIn: parent
@@ -93,7 +124,6 @@ Item {
                     visible: !root.isAuthenticating
                 }
 
-                // Spinner while authenticating
                 Item {
                     id: spinner
                     anchors.centerIn: parent
@@ -111,57 +141,149 @@ Item {
                 }
             }
 
-            PlasmaComponents3.TextField {
-                id: passwordBox
+            // Middle: Placeholder & Animated Material Shapes
+            Item {
+                id: inputContainer
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                echoMode: TextInput.Password
-                font { pixelSize: 16 * root.centerScale; family: "Rubik" }
-                text: PasswordSync.password
-                placeholderText: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder", "Password")
-                enabled: !root.graceLocked
-                focus: true
-                cursorVisible: activeFocus
-                background: Item {}
-                color: root.clSurfaceFg
-                placeholderTextColor: root.clSurfaceVariantFg
-                onAccepted: root.loginRequested(passwordBox.text)
-            }
-            Binding { target: PasswordSync; property: "password"; value: passwordBox.text }
+                clip: true
 
-            Item {
-                implicitWidth: implicitHeight
-                implicitHeight: parent.height - 12 * root.centerScale
+                Text {
+                    id: placeholder
+                    anchors.centerIn: parent
+                    text: placeholderMetrics.text
+                    font: placeholderMetrics.font
+                    color: root.isAuthenticating ? root.clSecondary : root.clSurfaceVariantFg
+                    opacity: passwordBox.text.length > 0 ? 0 : 1
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                }
 
-                Rectangle {
-                    id: enterBtn
-                    anchors.fill: parent
-                    radius: passwordBox.text.length > 0 ? width * 0.25 : width / 2
-                    color: passwordBox.text.length > 0 ? root.clPrimary : root.clSurfaceContainerHigh
-                    scale: enterMouse.pressed ? 0.85 : (enterMouse.containsMouse ? 0.95 : 1.0)
+                ListModel {
+                    id: charModel
+                }
 
-                    Behavior on radius { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                    Behavior on color { ColorAnimation { duration: 300 } }
-                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                ListView {
+                    id: charList
+                    anchors.centerIn: parent
+                    orientation: Qt.Horizontal
+                    spacing: 6 * root.centerScale
+                    height: 18 * root.centerScale
+                    width: Math.min(parent.width, (count * height) + Math.max(0, count - 1) * spacing)
+                    model: charModel
+                    interactive: false
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "arrow_forward"
-                        font.family: "Material Symbols Rounded"
-                        font.pixelSize: 20 * root.centerScale
-                        color: passwordBox.text.length > 0 ? root.clPrimaryFg : root.clSurfaceVariantFg
-                        rotation: passwordBox.text.length > 0 ? 0 : 90
-                        Behavior on color { ColorAnimation { duration: 300 } }
-                        Behavior on rotation { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    delegate: Item {
+                        id: ch
+                        required property int index
+                        required property int shapeVal
+                        property real nonAnimWidthScale: 1.0
+                        width: charList.height * nonAnimWidthScale
+                        height: charList.height
+
+                        ListView.onRemove: {
+                            initAnim.stop();
+                            removeAnim.start();
+                        }
+
+                        MaterialShape {
+                            id: charShape
+                            anchors.centerIn: parent
+                            implicitSize: charList.height * 1.4
+                            shape: shapeVal
+                            color: root.clSurfaceFg
+
+                            SequentialAnimation {
+                                id: initAnim
+                                running: true
+                                ParallelAnimation {
+                                    NumberAnimation { target: charShape; property: "opacity"; from: 0; to: 1; duration: 150; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: charShape; property: "scale"; from: 0; to: 1; duration: 180; easing.type: Easing.OutBack }
+                                    NumberAnimation { target: ch; property: "nonAnimWidthScale"; from: 1.0; to: 1.3; duration: 150 }
+                                }
+                                PauseAnimation { duration: 180 }
+                                PropertyAction { target: charShape; property: "shape"; value: MaterialShape.Circle }
+                                ParallelAnimation {
+                                    NumberAnimation { target: charShape; property: "scale"; to: 2 / 3; duration: 180; easing.type: Easing.InOutQuad }
+                                    NumberAnimation { target: ch; property: "nonAnimWidthScale"; to: 1.0; duration: 150 }
+                                }
+                            }
+
+                            SequentialAnimation {
+                                id: removeAnim
+                                PropertyAction { target: ch; property: "ListView.delayRemove"; value: true }
+                                ParallelAnimation {
+                                    NumberAnimation { target: charShape; property: "opacity"; to: 0; duration: 120 }
+                                    NumberAnimation { target: charShape; property: "scale"; to: 0.5; duration: 120 }
+                                }
+                                PropertyAction { target: ch; property: "ListView.delayRemove"; value: false }
+                            }
+                        }
                     }
+                }
+
+                TextInput {
+                    id: passwordBox
+                    anchors.fill: parent
+                    color: "transparent"
+                    cursorVisible: false
+                    cursorDelegate: Item {}
+                    echoMode: TextInput.Normal
+                    focus: true
+                    enabled: !root.graceLocked
+                    text: PasswordSync.password
+
+                    onTextChanged: {
+                        var targetLen = text.length;
+                        while (charModel.count < targetLen) {
+                            var idx = charModel.count;
+                            charModel.append({ shapeVal: root.shapeQueue[idx % root.shapeQueue.length] });
+                        }
+                        while (charModel.count > targetLen) {
+                            charModel.remove(charModel.count - 1);
+                        }
+                    }
+
+                    onAccepted: root.loginRequested(passwordBox.text)
+                }
+                Binding { target: PasswordSync; property: "password"; value: passwordBox.text }
+            }
+
+            // Right: MaterialShape Enter Arrow / Circle Button
+            Item {
+                id: enterButton
+                Layout.preferredWidth: 44 * root.centerScale
+                Layout.preferredHeight: 44 * root.centerScale
+                Layout.alignment: Qt.AlignVCenter
+
+                MaterialShape {
+                    id: enterShape
+                    anchors.fill: parent
+                    color: passwordBox.text.length > 0 ? root.clPrimary : root.clSurfaceContainerHigh
+                    shape: passwordBox.text.length > 0 ? MaterialShape.Arrow : MaterialShape.Circle
+                    rotation: 90
+                    scale: passwordBox.text.length === 0 ? 1.0 : (enterMouse.pressed ? 0.6 : (enterMouse.containsMouse ? 0.8 : 0.7))
+
+                    Behavior on color { ColorAnimation { duration: 250 } }
+                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
                     MouseArea {
                         id: enterMouse
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: passwordBox.text.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: root.loginRequested(passwordBox.text)
+                        onClicked: if (passwordBox.text.length > 0) root.loginRequested(passwordBox.text)
                     }
+                }
+
+                Text {
+                    id: enterIcon
+                    anchors.centerIn: parent
+                    text: "arrow_forward"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 20 * root.centerScale
+                    color: root.clSurfaceVariantFg
+                    opacity: passwordBox.text.length > 0 ? 0 : 1
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
                 }
             }
         }
