@@ -229,46 +229,108 @@ fi
 
 cd "$SHELL_DIR" || exit 1
 
-# lrelease compiles shell/translations into the .qm catalogues the shell loads.
-# Checked here rather than with the other dependencies so it also covers a fresh
-# setup run; without it CMake just warns and the shell ships English only.
-if ! command -v lrelease >/dev/null 2>&1 && [[ ! -x /usr/lib/qt6/bin/lrelease ]]; then
-    info "Installing Qt Linguist tools for UI translations..."
-    if command -v pacman >/dev/null; then
-        sudo pacman -S --needed --noconfirm qt6-tools || warn "qt6-tools install failed; the shell will stay in English."
-    elif command -v dnf >/dev/null; then
-        sudo dnf install -y qt6-qttools-devel || warn "qt6-qttools-devel install failed; the shell will stay in English."
-    elif command -v apt-get >/dev/null; then
-        sudo apt-get install -y qt6-l10n-tools qt6-tools-dev || warn "Linguist tools install failed; the shell will stay in English."
+# The prebuilt shell tarball is keyed by the Qt feature version it was built
+# against (patch releases share an ABI). A machine on a different Qt misses
+# the asset, 404s, and falls back to a local compile.
+shell_qt_abi() {
+    pkg-config --modversion Qt6Core 2>/dev/null | grep -oE '^[0-9]+\.[0-9]+' || true
+}
+
+# The release tag this checkout corresponds to. The prebuilt tarball lives on
+# the release for this VERSION - the same tag setup.sh uses for the installer
+# TUI binary.
+shell_release_tag() {
+    sed -nE 's/^[[:space:]]*VERSION=//p' "$BUNDLE_DIR/.github/version.env" 2>/dev/null | tr -d '[:space:]'
+}
+
+# Download the prebuilt shell tarball from the version release and extract it.
+# The tarball has two top-level trees: lib/ (compiled QML plugins and the
+# version binary) into $HOME/.local, and config/quickshell/caelestia/ (the
+# shell QML source with the install-time shell.qml patch) into $HOME/.config.
+try_download_prebuilt_shell() {
+    local arch qt_abi tag tmp_archive url
+    arch="$(uname -m)"
+    [[ "$arch" == "x86_64" ]] || return 1
+    qt_abi="$(shell_qt_abi)"
+    tag="$(shell_release_tag)"
+    [[ -n "$qt_abi" && -n "$tag" ]] || return 1
+
+    tmp_archive="$(mktemp --suffix=.tar.gz)"
+    url="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/${tag}/caelestia-shell-${arch}-qt${qt_abi}.tar.gz"
+    if ! curl -fsSL --connect-timeout 10 --max-time 120 "$url" -o "$tmp_archive" 2>/dev/null; then
+        rm -f "$tmp_archive"
+        return 1
+    fi
+
+    mkdir -p "$HOME/.local" "$HOME/.config"
+    if ! tar -C "$HOME/.local" -xzf "$tmp_archive" lib 2>/dev/null; then
+        rm -f "$tmp_archive"
+        return 1
+    fi
+    if ! tar -C "$HOME/.config" -xzf "$tmp_archive" config 2>/dev/null; then
+        rm -f "$tmp_archive"
+        return 1
+    fi
+    rm -f "$tmp_archive"
+    return 0
+}
+
+# Prefer the prebuilt shell from the release when available so a fresh install
+# downloads the compiled .so files instead of building Qt6/C++ locally. The
+# workspace-tracker KWin effect is still built locally either way (its ABI is
+# Plasma-version-specific).
+SHELL_PREBUILT=0
+if [[ -z "${CAELESTIA_FORCE_BUILD_SHELL:-}" ]] && command -v curl >/dev/null 2>&1; then
+    if try_download_prebuilt_shell; then
+        SHELL_PREBUILT=1
+        ok "Using prebuilt shell artifacts from the release."
     fi
 fi
 
-info "Configuring CMake..."
-prepare_build_dir build
-cmake -G "$CMAKE_GENERATOR" -B build -DCMAKE_BUILD_TYPE=Release -DCAELESTIA_CACHE_DEPS=ON -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DINSTALL_QSCONFDIR="$HOME/.config/quickshell/caelestia" -DINSTALL_LIBDIR="lib/caelestia" -DINSTALL_QMLDIR="lib/qt6/qml" || {
-    err "CMake configuration failed."
-    exit 1
-}
+if [[ "$SHELL_PREBUILT" -eq 1 ]]; then
+    info "Skipping local shell build; prebuilt artifacts installed."
+else
+    # lrelease compiles shell/translations into the .qm catalogues the shell loads.
+    # Checked here rather than with the other dependencies so it also covers a fresh
+    # setup run; without it CMake just warns and the shell ships English only.
+    if ! command -v lrelease >/dev/null 2>&1 && [[ ! -x /usr/lib/qt6/bin/lrelease ]]; then
+        info "Installing Qt Linguist tools for UI translations..."
+        if command -v pacman >/dev/null; then
+            sudo pacman -S --needed --noconfirm qt6-tools || warn "qt6-tools install failed; the shell will stay in English."
+        elif command -v dnf >/dev/null; then
+            sudo dnf install -y qt6-qttools-devel || warn "qt6-qttools-devel install failed; the shell will stay in English."
+        elif command -v apt-get >/dev/null; then
+            sudo apt-get install -y qt6-l10n-tools qt6-tools-dev || warn "Linguist tools install failed; the shell will stay in English."
+        fi
+    fi
 
-info "Building with $BUILD_JOBS parallel jobs..."
-# Stream the build live while filtering compiler warning/note spam, and keep
-# the full output in a log for diagnostics on failure.
-BUILD_LOG="${XDG_CACHE_HOME:-$HOME/.cache}/caelestia-kde/shell-build.log"
-mkdir -p "$(dirname "$BUILD_LOG")"
-set +e
-caelestia_build cmake --build build -j"$BUILD_JOBS" -- -l "$BUILD_LOAD" 2>&1 | tee "$BUILD_LOG" | grep -vE --line-buffered 'warning:|note:'
-_build_rc=${PIPESTATUS[0]}
-set -e
-if [[ $_build_rc -ne 0 ]]; then
-    err "Build failed. Full log: $BUILD_LOG"
-    show_build_errors "$BUILD_LOG"
-    exit 1
-fi
+    info "Configuring CMake..."
+    prepare_build_dir build
+    cmake -G "$CMAKE_GENERATOR" -B build -DCMAKE_BUILD_TYPE=Release -DCAELESTIA_CACHE_DEPS=ON -DCMAKE_INSTALL_PREFIX="$HOME/.local" -DINSTALL_QSCONFDIR="$HOME/.config/quickshell/caelestia" -DINSTALL_LIBDIR="lib/caelestia" -DINSTALL_QMLDIR="lib/qt6/qml" || {
+        err "CMake configuration failed."
+        exit 1
+    }
 
-info "Installing to user local dir..."
-if ! cmake --install build 2>&1 | tee -a "$BUILD_LOG"; then
-    err "Installation failed. Full log: $BUILD_LOG"
-    exit 1
+    info "Building with $BUILD_JOBS parallel jobs..."
+    # Stream the build live while filtering compiler warning/note spam, and keep
+    # the full output in a log for diagnostics on failure.
+    BUILD_LOG="${XDG_CACHE_HOME:-$HOME/.cache}/caelestia-kde/shell-build.log"
+    mkdir -p "$(dirname "$BUILD_LOG")"
+    set +e
+    caelestia_build cmake --build build -j"$BUILD_JOBS" -- -l "$BUILD_LOAD" 2>&1 | tee "$BUILD_LOG" | grep -vE --line-buffered 'warning:|note:'
+    _build_rc=${PIPESTATUS[0]}
+    set -e
+    if [[ $_build_rc -ne 0 ]]; then
+        err "Build failed. Full log: $BUILD_LOG"
+        show_build_errors "$BUILD_LOG"
+        exit 1
+    fi
+
+    info "Installing to user local dir..."
+    if ! cmake --install build 2>&1 | tee -a "$BUILD_LOG"; then
+        err "Installation failed. Full log: $BUILD_LOG"
+        exit 1
+    fi
 fi
 
 # The install step strips the effect, so the installed file never matches the
