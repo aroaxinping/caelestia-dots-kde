@@ -577,6 +577,15 @@ Item {
                         onLoginRequested: pass => lockScreenUi.startLogin(pass)
                     }
 
+                    Session {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: 4 * lockScreenUi.centerScale
+                        centerScale: lockScreenUi.centerScale
+                        isAuthenticating: lockScreenUi.isAuthenticating
+                        clPrimary: lockScreenUi.clPrimary
+                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                    }
+
                     // Status Messages (Caps Lock, Errors, Fingerprint)
                     Item {
                         Layout.alignment: Qt.AlignHCenter
@@ -862,6 +871,15 @@ Item {
                                 }
                             }
                         }
+                    }
+
+                    Session {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: 4 * lockScreenUi.centerScale
+                        centerScale: lockScreenUi.centerScale
+                        isAuthenticating: lockScreenUi.isAuthenticating
+                        clPrimary: lockScreenUi.clPrimary
+                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                     }
                 }
             }
