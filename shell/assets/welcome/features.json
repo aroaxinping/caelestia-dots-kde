@@ -44,7 +44,7 @@
     {
       "id": "lockscreen-greeter#600",
       "title": "Lockscreen Greeter",
-      "description": "",
+      "description": "The Caelestia lock screen brings the modern Quickshell lockscreen design into native KDE Plasma 6",
       "icon": "lock",
       "media_url": "lockscreen_greeter_600.png"
     }
