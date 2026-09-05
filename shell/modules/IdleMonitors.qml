@@ -8,6 +8,7 @@ import Quickshell.Services.UPower
 import Caelestia.Config
 import Caelestia.Services
 import qs.services
+import qs.utils
 
 Scope {
     id: root
@@ -51,7 +52,7 @@ Scope {
         else if (typeof action === "string")
             Hypr.dispatch(action);
         else if (!SessionManager.exec(action))
-            Quickshell.execDetached(action);
+            Launch.exec(action);
     }
 
     Connections {
