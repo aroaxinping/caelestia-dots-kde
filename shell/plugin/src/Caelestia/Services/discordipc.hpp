@@ -37,6 +37,7 @@ private slots:
     void onReadyRead();
     void onError(QLocalSocket::LocalSocketError socketError);
     void checkReconnect();
+    void tryNextPath();
 
 private:
     void sendFrame(int opcode, const QJsonObject& payload);
@@ -47,6 +48,7 @@ private:
     QString m_clientId;
     bool m_connected;
     QByteArray m_buffer;
+    QStringList m_pendingPaths;
 };
 
 } // namespace caelestia

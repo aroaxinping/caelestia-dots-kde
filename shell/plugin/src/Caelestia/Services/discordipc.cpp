@@ -1,6 +1,7 @@
 #include "discordipc.hpp"
 #include <QStandardPaths>
 #include <QDir>
+#include <QFile>
 #include <QDebug>
 #include <QDataStream>
 #include <QCoreApplication>
@@ -63,31 +64,34 @@ void DiscordIpc::checkReconnect() {
     if (m_clientId.isEmpty()) return;
     if (m_socket->state() == QLocalSocket::ConnectedState || m_socket->state() == QLocalSocket::ConnectingState) return;
 
-    QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
 
-    // Try native Discord IPC paths first: discord-ipc-0 through discord-ipc-9
-    // (multiple concurrent Discord-protocol clients occupy successive slots).
-    for (int slot = 0; slot <= 9; ++slot) {
-        QString pipePath = runtimeDir + "/discord-ipc-" + QString::number(slot);
-        m_socket->connectToServer(pipePath);
-        if (m_socket->waitForConnected(500))
-            return;
-    }
+    m_pendingPaths.clear();
+    for (int slot = 0; slot <= 9; ++slot)
+        m_pendingPaths << runtimeDir + "/discord-ipc-" + QString::number(slot);
 
-    // Flatpak-packaged Discord / Vesktop sandbox the runtime directory.
-    // Try the well-known Flatpak app-ids.
     static const QStringList flatpakIds = {
         "com.discordapp.Discord",
         "dev.vencord.Vesktop",
     };
-    for (const auto& id : flatpakIds) {
-        for (int slot = 0; slot <= 9; ++slot) {
-            QString pipePath = runtimeDir + "/app/" + id + "/discord-ipc-" + QString::number(slot);
-            m_socket->connectToServer(pipePath);
-            if (m_socket->waitForConnected(500))
-                return;
+    for (const auto& id : flatpakIds)
+        for (int slot = 0; slot <= 9; ++slot)
+            m_pendingPaths << runtimeDir + "/app/" + id + "/discord-ipc-" + QString::number(slot);
+
+    tryNextPath();
+}
+
+void DiscordIpc::tryNextPath() {
+    while (!m_pendingPaths.isEmpty()) {
+        const QString path = m_pendingPaths.takeFirst();
+        if (QFile::exists(path)) {
+            if (m_socket->state() != QLocalSocket::UnconnectedState)
+                m_socket->abort();
+            m_socket->connectToServer(path);
+            return;
         }
     }
+    // All candidates exhausted — timer retries in 5 s
 }
 
 void DiscordIpc::onSocketConnected() {
@@ -109,6 +113,11 @@ void DiscordIpc::onSocketDisconnected() {
 void DiscordIpc::onError(QLocalSocket::LocalSocketError) {
     emit errorOccurred(m_socket->errorString());
     onSocketDisconnected();
+    // If a reconnect scan is in progress, try the next candidate non-blocking.
+    // Use a queued invoke to avoid re-entering connectToServer() inside its own
+    // error signal, which can recurse on synchronous failures (e.g. ENOENT).
+    if (!m_pendingPaths.isEmpty())
+        QMetaObject::invokeMethod(this, &DiscordIpc::tryNextPath, Qt::QueuedConnection);
 }
 
 void DiscordIpc::onReadyRead() {
