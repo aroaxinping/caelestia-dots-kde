@@ -1,9 +1,11 @@
-﻿pragma Singleton
+pragma Singleton
 pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia
 import Caelestia.Services
+import qs.components.misc
 
 /// Thin adapter wrapping the C++ NmQt (NetworkManagerQt/D-Bus) singleton.
 /// Preserves the legacy Nmcli API surface so existing QML consumers continue
@@ -19,6 +21,7 @@ Singleton {
     readonly property bool isConnected: NmQt.isConnected
     property bool wifiEnabled: NmQt.wifiEnabled
     readonly property bool scanning: NmQt.scanning
+    readonly property string connectingSsid: NmQt.connectingSsid
 
     readonly property var wirelessDeviceDetails: NmQt.wirelessDeviceDetails
     readonly property var ethernetDeviceDetails: NmQt.ethernetDeviceDetails
@@ -49,7 +52,7 @@ Singleton {
     readonly property list<AccessPoint> networks: __networks
     property list<AccessPoint> __networks: []
 
-    readonly property AccessPoint active: __networks.find(n => n.active) ?? null
+    property AccessPoint active: null
 
     property var deviceStatus: null
     property var wirelessInterfaces: []
@@ -88,26 +91,69 @@ Singleton {
     readonly property alias connectionCheckTimer: connectionCheckTimer
     readonly property alias immediateCheckTimer: immediateCheckTimer
 
+    // Guards against spurious notifications at shell startup.
+    // Becomes true ~3 s after the shell is ready so we don't toast
+    // "Wi-Fi connected" for the network that was already active.
+
+
+    signal connectionSuccessful(string ssid)
     signal connectionFailed(string ssid)
     signal monitorEvent()
+
+    function rebuildActive(): void {
+        const raw = NmQt.active;
+        if (raw && raw.ssid && raw.ssid.length > 0) {
+            const found = __networks.find(n => n.ssid === raw.ssid) ?? null;
+            if (found) {
+                root.active = found;
+            } else if (!root.active || root.active.ssid !== raw.ssid) {
+                root.active = apComp.createObject(root, { lastIpcObject: raw });
+            }
+            if (root.pendingConnection && root.active && root.active.ssid && root.active.ssid.toLowerCase().trim() === root.pendingConnection.ssid.toLowerCase().trim()) {
+                const pending = root.pendingConnection;
+                root.pendingConnection = null;
+                connectionCheckTimer.stop();
+                immediateCheckTimer.stop();
+                immediateCheckTimer.checkCount = 0;
+                root.connectionSuccessful(pending.ssid);
+                if (pending.callback && typeof pending.callback === "function") {
+                    pending.callback({ success: true, output: "Connected", error: "", exitCode: 0 });
+                }
+            }
+        } else if (root.active !== null) {
+            root.active = null;
+        }
+    }
 
     function rebuildNetworkList(): void {
         const rawList = NmQt.networks;
         const newList = [];
+        const oldMap = new Map();
 
-        for (let i = 0; i < rawList.length; i++) {
-            const existing = __networks[i];
-            if (existing) {
-                existing.lastIpcObject = rawList[i];
-                newList.push(existing);
-            } else {
-                newList.push(apComp.createObject(root, { lastIpcObject: rawList[i] }));
+        for (let i = 0; i < __networks.length; i++) {
+            const ap = __networks[i];
+            if (ap && ap.ssid) {
+                const key = ap.bssid || ap.ssid;
+                oldMap.set(key, ap);
             }
         }
 
-        for (let j = newList.length; j < __networks.length; j++) {
-            __networks[j].destroy();
+        for (let i = 0; i < rawList.length; i++) {
+            const raw = rawList[i];
+            const key = raw.bssid || raw.ssid;
+            const existing = oldMap.get(key);
+            if (existing) {
+                existing.lastIpcObject = raw;
+                newList.push(existing);
+                oldMap.delete(key);
+            } else {
+                newList.push(apComp.createObject(root, { lastIpcObject: raw }));
+            }
         }
+
+        oldMap.forEach(ap => {
+            ap.destroy();
+        });
 
         root.__networks = newList;
     }
@@ -189,8 +235,6 @@ Singleton {
         return !!state && state.startsWith("connecting");
     }
 
-    function connectingSsid(): string { return NmQt.connectingSsid; }
-
     function executeCommand(args: list<string>, callback: var): void {
         if (callback && typeof callback === "function")
             callback({ success: false, output: "", error: "executeCommand removed - use NmQt", exitCode: -1 });
@@ -212,18 +256,26 @@ Singleton {
     function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback: var, bssid: string): void {
         let immediateResult = null;
         const wrappedCallback = result => {
-            if (result && result.success)
-                return;
-
             immediateResult = result;
-            root.pendingConnection = null;
-            connectionCheckTimer.stop();
-            immediateCheckTimer.stop();
-            immediateCheckTimer.checkCount = 0;
-            if (callback && typeof callback === "function") callback(result);
+            if (result && !result.success) {
+                root.pendingConnection = null;
+                connectionCheckTimer.stop();
+                immediateCheckTimer.stop();
+                immediateCheckTimer.checkCount = 0;
+                root.connectionFailed(ssid);
+                if (callback && typeof callback === "function") callback(result);
+            } else if (result && result.needsPassword) {
+                root.pendingConnection = null;
+                connectionCheckTimer.stop();
+                immediateCheckTimer.stop();
+                immediateCheckTimer.checkCount = 0;
+                if (callback && typeof callback === "function") callback(result);
+            }
+            // If success is true and needsPassword is false, do not stop timers.
+            // Wait for active connection state to update.
         };
         NmQt.connectToNetworkWithPasswordCheck(ssid, isSecure, wrappedCallback, bssid);
-        if (callback && !immediateResult) {
+        if (!immediateResult) {
             root.pendingConnection = { ssid: ssid, bssid: bssid || "", callback: callback };
             connectionCheckTimer.start();
             immediateCheckTimer.checkCount = 0;
@@ -234,18 +286,20 @@ Singleton {
     function connectToNetwork(ssid: string, password: string, bssid: string, callback: var): void {
         let immediateResult = null;
         const wrappedCallback = result => {
-            if (result && result.success)
-                return;
-
             immediateResult = result;
-            root.pendingConnection = null;
-            connectionCheckTimer.stop();
-            immediateCheckTimer.stop();
-            immediateCheckTimer.checkCount = 0;
-            if (callback && typeof callback === "function") callback(result);
+            if (result && !result.success) {
+                root.pendingConnection = null;
+                connectionCheckTimer.stop();
+                immediateCheckTimer.stop();
+                immediateCheckTimer.checkCount = 0;
+                root.connectionFailed(ssid);
+                if (callback && typeof callback === "function") callback(result);
+            }
+            // If success is true, do not stop timers.
+            // Wait for active connection state to update.
         };
         NmQt.connectToNetwork(ssid, password, bssid, wrappedCallback);
-        if (callback && !immediateResult) {
+        if (!immediateResult) {
             root.pendingConnection = { ssid: ssid, bssid: bssid || "", callback: callback };
             connectionCheckTimer.start();
             immediateCheckTimer.checkCount = 0;
@@ -448,11 +502,15 @@ Singleton {
     Component.onCompleted: {
         rebuildNetworkList();
         rebuildEthernetDevices();
+        rebuildActive();
     }
+
+
 
     Connections {
         function onNetworksChanged(): void {
             rebuildNetworkList();
+            rebuildActive();
         }
         function onEthernetDevicesChanged(): void {
             rebuildEthernetDevices();
@@ -472,6 +530,10 @@ Singleton {
         function onConnectionFailed(ssid: string): void {
             root.connectionFailed(ssid);
         }
+        function onActiveChanged(): void {
+            rebuildNetworkList();
+            rebuildActive();
+        }
 
         target: NmQt
     }
@@ -479,11 +541,11 @@ Singleton {
     Timer {
         id: connectionCheckTimer
 
-        interval: 4000
+        interval: 20000
 
         onTriggered: {
             if (root.pendingConnection) {
-                const connected = root.active && root.active.ssid === root.pendingConnection.ssid;
+                const connected = root.active && root.active.ssid && root.active.ssid.toLowerCase().trim() === root.pendingConnection.ssid.toLowerCase().trim();
                 if (!connected) {
                     const pending = root.pendingConnection;
                     const failedSsid = pending.ssid;
@@ -498,9 +560,16 @@ Singleton {
                         });
                     }
                 } else {
+                    const pending = root.pendingConnection;
                     root.pendingConnection = null;
                     immediateCheckTimer.stop();
                     immediateCheckTimer.checkCount = 0;
+                    root.connectionSuccessful(pending.ssid);
+                    if (pending.callback && typeof pending.callback === "function") {
+                        pending.callback({
+                            success: true, output: "Connected", error: "", exitCode: 0
+                        });
+                    }
                 }
             }
         }
@@ -517,17 +586,19 @@ Singleton {
         onTriggered: {
             if (root.pendingConnection) {
                 checkCount++;
-                const connected = root.active && root.active.ssid === root.pendingConnection.ssid;
+                const connected = root.active && root.active.ssid && root.active.ssid.toLowerCase().trim() === root.pendingConnection.ssid.toLowerCase().trim();
                 if (connected) {
                     connectionCheckTimer.stop();
                     immediateCheckTimer.stop();
                     immediateCheckTimer.checkCount = 0;
-                    if (root.pendingConnection.callback && typeof root.pendingConnection.callback === "function") {
-                        root.pendingConnection.callback({
+                    const pending = root.pendingConnection;
+                    root.pendingConnection = null;
+                    root.connectionSuccessful(pending.ssid);
+                    if (pending.callback && typeof pending.callback === "function") {
+                        pending.callback({
                             success: true, output: "Connected", error: "", exitCode: 0
                         });
                     }
-                    root.pendingConnection = null;
                 } else if (checkCount >= 6) {
                     immediateCheckTimer.stop();
                     immediateCheckTimer.checkCount = 0;
