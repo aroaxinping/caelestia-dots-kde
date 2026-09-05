@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 singleton PasswordSync 1.0 PasswordSync.qml
-singleton Config 1.0 Config.qml
+singleton LockScreenConfig 1.0 LockScreenConfig.qml

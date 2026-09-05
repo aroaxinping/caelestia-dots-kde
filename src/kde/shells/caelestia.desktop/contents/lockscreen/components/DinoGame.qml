@@ -178,7 +178,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: "All up to date!"
-            font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
+            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
             color: root.activeColor
             opacity: 0.8
         }
@@ -186,7 +186,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: "Click or press Space to play"
-            font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
+            font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
             color: root.activeColor
             opacity: 0.5
         }
@@ -242,7 +242,7 @@ Item {
             anchors.top:    parent.top
             anchors.right:  parent.right
             anchors.margins: 10
-            font { pixelSize: Config.sizeVerySmall; family: Config.fontMono }
+            font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontMono }
             color: root.activeColor
             opacity: 0.8
         }
@@ -278,13 +278,13 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "G A M E   O V E R"
-                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
+                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
                 color: root.activeColor
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Click to restart"
-                font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
+                font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
                 color: root.activeColor
                 opacity: 0.6
             }
@@ -300,13 +300,13 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Y O U   W I N !"
-                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
+                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
                 color: root.activeColor
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Now go touch grass"
-                font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
+                font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
                 color: root.activeColor
                 opacity: 0.6
             }

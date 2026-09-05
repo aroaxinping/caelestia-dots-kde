@@ -74,7 +74,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: root.liveTemp + "°C"
-                    font { pixelSize: Config.sizeVerySmall; family: Config.fontMetrics; weight: Font.Medium }
+                    font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontMetrics; weight: Font.Medium }
                     color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
@@ -198,15 +198,15 @@ Rectangle {
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.icon
-                font.family: Config.fontIcon
-                font.pixelSize: Config.sizeVeryLarge
+                font.family: LockScreenConfig.fontIcon
+                font.pixelSize: LockScreenConfig.sizeVeryLarge
                 color: res.iconColor
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.value
-                font { pixelSize: Config.sizeLarge; family: Config.fontMetrics; weight: Font.Medium }
+                font { pixelSize: LockScreenConfig.sizeLarge; family: LockScreenConfig.fontMetrics; weight: Font.Medium }
                 color: res.valueColor
             }
         }

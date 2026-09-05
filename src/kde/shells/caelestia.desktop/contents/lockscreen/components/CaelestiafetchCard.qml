@@ -98,8 +98,8 @@ Rectangle {
                     // Font sizes here are NOT multiplied by centerScale — matches the
                     // convention used by all other lockscreen cards (MediaCard, NotifDock, etc.)
                     font {
-                        pixelSize: Config.sizeSmall
-                        family: Config.fontMono
+                        pixelSize: LockScreenConfig.sizeSmall
+                        family: LockScreenConfig.fontMono
                         weight: Font.Bold
                     }
                     color: root.clSurface
@@ -109,8 +109,8 @@ Rectangle {
             Text {
                 text: "caelestiafetch.sh"
                 font {
-                    pixelSize: Config.sizeSmall
-                    family: Config.fontMono
+                    pixelSize: LockScreenConfig.sizeSmall
+                    family: LockScreenConfig.fontMono
                 }
                 color: root.clSurfaceFg
                 Layout.fillWidth: true
@@ -163,9 +163,9 @@ Rectangle {
                         required property string modelData
                         text: modelData
                         font {
-                            family: Config.fontMono
+                            family: LockScreenConfig.fontMono
                             // Fixed px — same convention as MediaCard, NotifDock, GreetingPill
-                            pixelSize: Config.sizeSmall
+                            pixelSize: LockScreenConfig.sizeSmall
                         }
                         color: root.clSurfaceFg
                         elide: Text.ElideRight

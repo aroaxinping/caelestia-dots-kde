@@ -57,7 +57,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root._wd ? root._wd.value : "No weather"
-            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
+            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading }
             color: root.clSurfaceVariantFg
         }
 
@@ -67,7 +67,7 @@ Rectangle {
 
             Text {
                 text: root._cc ? root._cc.temp_C + "°C" : "--°C"
-                font { pixelSize: Config.sizeVeryLarge; family: Config.fontHeading; weight: Font.Medium }
+                font { pixelSize: LockScreenConfig.sizeVeryLarge; family: LockScreenConfig.fontHeading; weight: Font.Medium }
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
@@ -77,8 +77,8 @@ Rectangle {
                 text: root._wd
                       ? root.getWeatherSymbol(root._wd.value, root._cc.weatherCode)
                       : "cloud"
-                font.family: Config.fontIcon
-                font.pixelSize: Config.sizeVeryLarge
+                font.family: LockScreenConfig.fontIcon
+                font.pixelSize: LockScreenConfig.sizeVeryLarge
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
@@ -88,7 +88,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root._cc ? "Feels like " + root._cc.FeelsLikeC + "°C" : "Feels like --°C"
-            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
+            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading }
             color: root.clSurfaceVariantFg
         }
 
@@ -97,7 +97,7 @@ Rectangle {
             text: root._day
                   ? "High " + root._day.maxtempC + "°C • Low " + root._day.mintempC + "°C"
                   : "High --°C • Low --°C"
-            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
+            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading }
             color: root.clSurfaceVariantFg
         }
     }

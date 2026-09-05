@@ -61,7 +61,7 @@ FocusScope {
     TextMetrics {
         id: placeholderMetrics
         text: root.isAuthenticating ? qsTr("Loading...") : qsTr("Enter your password")
-        font { pixelSize: Config.sizeSmall; family: Config.fontHeading; weight: Font.Normal }
+        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading; weight: Font.Normal }
     }
 
     readonly property real collapsedWidth: Math.min(
@@ -114,8 +114,8 @@ FocusScope {
                 Text {
                     anchors.centerIn: parent
                     text: root.hasFingerprint ? "fingerprint" : "face"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeLarge
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeLarge
                     color: root.clSurfaceVariantFg
                     visible: !root.isAuthenticating
                 }
@@ -275,8 +275,8 @@ FocusScope {
                     id: enterIcon
                     anchors.centerIn: parent
                     text: "arrow_forward"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeLarge
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeLarge
                     color: root.clSurfaceVariantFg
                     opacity: passwordBox.text.length > 0 ? 0 : 1
                     Behavior on opacity { NumberAnimation { duration: 150 } }

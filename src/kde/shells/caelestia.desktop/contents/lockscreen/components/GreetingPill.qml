@@ -31,7 +31,7 @@ Rectangle {
         Text {
             text: root.greetingInfo ? (root.greetingInfo.icon || "") : ""
             font.family: "Material Symbols Rounded"
-            font.pixelSize: Config.sizeLarge
+            font.pixelSize: LockScreenConfig.sizeLarge
             color: root.greetingInfo ? (root.greetingInfo.iconColor || root.clPrimary) : root.clPrimary
         }
         RowLayout {
@@ -39,12 +39,12 @@ Rectangle {
             Text {
                 text: (root.greetingInfo ? root.greetingInfo.greeting : "") + ","
                 color: root.clSurfaceVariantFg
-                font { pixelSize: Config.sizeSmall; family: "Rubik" }
+                font { pixelSize: LockScreenConfig.sizeSmall; family: "Rubik" }
             }
             Text {
                 text: root.userName || "User"
                 color: root.clPrimary
-                font { pixelSize: Config.sizeSmall; family: "Rubik"; weight: Font.Bold }
+                font { pixelSize: LockScreenConfig.sizeSmall; family: "Rubik"; weight: Font.Bold }
             }
         }
     }

@@ -75,7 +75,7 @@ Rectangle {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackTitle ?? "Nothing playing"
             text: root.hasMedia ? (root.mediaInfo.title || "") : qsTr("Nothing playing")
-            font { pixelSize: Config.sizeMedium; family: Config.fontHeading; weight: Font.Medium }
+            font { pixelSize: LockScreenConfig.sizeMedium; family: LockScreenConfig.fontHeading; weight: Font.Medium }
             color: root.clSurfaceFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -85,7 +85,7 @@ Rectangle {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackArtist ?? "Try playing some music!"
             text: root.hasMedia ? (root.mediaInfo.artist || "") : qsTr("Try playing some music!")
-            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
+            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading }
             color: root.clSurfaceVariantFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -106,8 +106,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "skip_previous"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeLarge
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeLarge
                     color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {
@@ -128,8 +128,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: (root.hasMedia && root.mediaInfo.status === "Playing") ? "pause" : "play_arrow"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeVeryLarge
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeVeryLarge
                     color: root.hasMedia ? root.clSurface : root.clSurfaceVariantFg
                 }
                 MouseArea {
@@ -150,8 +150,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "skip_next"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeLarge
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeLarge
                     color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {

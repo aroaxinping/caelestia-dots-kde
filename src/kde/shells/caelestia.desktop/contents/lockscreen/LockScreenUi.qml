@@ -600,7 +600,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             visible: capsLockState.locked && !lockScreenUi.authMessage
                             text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
-                            font { pixelSize: Config.sizeSmall; family: Config.fontBody }
+                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
                             color: lockScreenUi.clSurfaceVariantFg
                             wrapMode: Text.WordWrap
                             opacity: visible ? 1 : 0
@@ -613,7 +613,7 @@ Item {
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             text: lockScreenUi.authMessage
-                            font { pixelSize: Config.sizeSmall; family: Config.fontBody }
+                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
                             color: lockScreenUi.clError
                             wrapMode: Text.WordWrap
                             scale: 0.7; opacity: 0
@@ -626,7 +626,7 @@ Item {
                             anchors.topMargin: 6 * lockScreenUi.centerScale
                             visible: authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint
                             text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
-                            font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
+                            font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
                             color: lockScreenUi.clSurfaceVariantFg
                         }
                     }
@@ -762,7 +762,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "person"
-                        font.family: Config.fontIcon
+                        font.family: LockScreenConfig.fontIcon
                         font.pixelSize: parent.width * 0.45
                         color: lockScreenUi.clSurfaceVariantFg
                         visible: portraitProfileImage.status !== Image.Ready
@@ -825,7 +825,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "lock"
                                 font.family: "Material Symbols Rounded"
-                                font.pixelSize: Config.sizeLarge * lockScreenUi.centerScale
+                                font.pixelSize: LockScreenConfig.sizeLarge * lockScreenUi.centerScale
                                 color: lockScreenUi.clSurfaceVariantFg
                             }
                         }
@@ -836,7 +836,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left
                                 text: (passwordPill && passwordPill.text.length > 0) ? "•".repeat(passwordPill.text.length) : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder", "Password")
-                                font { pixelSize: Config.sizeMedium * lockScreenUi.centerScale; family: Config.fontBody }
+                                font { pixelSize: LockScreenConfig.sizeMedium * lockScreenUi.centerScale; family: LockScreenConfig.fontBody }
                                 color: (passwordPill && passwordPill.text.length > 0) ? lockScreenUi.clSurfaceFg : lockScreenUi.clSurfaceVariantFg
                             }
                             MouseArea {
@@ -856,8 +856,8 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "arrow_forward"
-                                    font.family: Config.fontIcon
-                                    font.pixelSize: Config.sizeLarge * lockScreenUi.centerScale
+                                    font.family: LockScreenConfig.fontIcon
+                                    font.pixelSize: LockScreenConfig.sizeLarge * lockScreenUi.centerScale
                                     color: (passwordPill && passwordPill.text.length > 0) ? lockScreenUi.clPrimaryFg : lockScreenUi.clSurfaceVariantFg
                                     rotation: (passwordPill && passwordPill.text.length > 0) ? 0 : 90
                                     Behavior on color { ColorAnimation { duration: 300 } }

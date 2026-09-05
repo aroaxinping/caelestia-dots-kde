@@ -34,8 +34,8 @@ Item {
     Text {
         anchors.centerIn: parent
         text: "logout"
-        font.family: Config.fontIcon
-        font.pixelSize: Config.sizeLarge * centerScale
+        font.family: LockScreenConfig.fontIcon
+        font.pixelSize: LockScreenConfig.sizeLarge * centerScale
         color: logoutMouse.containsMouse ? root.clPrimary : root.clSurfaceVariantFg
         Behavior on color { ColorAnimation { duration: 150 } }
     }

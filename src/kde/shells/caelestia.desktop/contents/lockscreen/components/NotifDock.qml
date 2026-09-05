@@ -125,7 +125,7 @@ Rectangle {
                 text: root.liveNotifs.length > 0
                       ? (root.liveNotifs.length + (root.liveNotifs.length === 1 ? " notification" : " notifications"))
                       : "Notifications"
-                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
+                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
                 color: root.clOutline
                 elide: Text.ElideRight
             }
@@ -144,8 +144,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "clear_all"
-                    font.family: Config.fontIcon
-                    font.pixelSize: Config.sizeLarge * root.centerScale
+                    font.family: LockScreenConfig.fontIcon
+                    font.pixelSize: LockScreenConfig.sizeLarge * root.centerScale
                     color: root.clSurfaceFg
                 }
                 
@@ -332,14 +332,14 @@ Rectangle {
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.appName
-                                font { pixelSize: Config.sizeMedium; family: Config.fontBody; weight: Font.Medium }
+                                font { pixelSize: LockScreenConfig.sizeMedium; family: LockScreenConfig.fontBody; weight: Font.Medium }
                                 color: root.clSurfaceVariantFg
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 text: root.formatNotifTime(modelData.latestTime)
-                                font { pixelSize: Config.sizeSmall; family: Config.fontBody }
+                                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
                                 color: root.clOutline
                             }
 
@@ -359,14 +359,14 @@ Rectangle {
 
                                     Text {
                                         text: modelData.notifs.length
-                                        font { pixelSize: Config.sizeVerySmall; family: Config.fontBody; weight: Font.Medium }
+                                        font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
                                         color: root.clSurfaceFg
                                     }
 
                                     Text {
                                         text: groupCard.expanded ? "expand_less" : "expand_more"
-                                        font.family: Config.fontIcon
-                                        font.pixelSize: Config.sizeMedium
+                                        font.family: LockScreenConfig.fontIcon
+                                        font.pixelSize: LockScreenConfig.sizeMedium
                                         color: root.clSurfaceFg
                                     }
                                 }
@@ -393,7 +393,7 @@ Rectangle {
                                     anchors.right: parent.right
                                     textFormat: Text.StyledText
                                     elide: Text.ElideRight
-                                    font { pixelSize: Config.sizeSmall; family: Config.fontBody }
+                                    font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
                                     text: {
                                         var sum = (modelData.summary || "").replace(/\n/g, " ");
                                         var body = (modelData.body || "").replace(/\n/g, " ");
