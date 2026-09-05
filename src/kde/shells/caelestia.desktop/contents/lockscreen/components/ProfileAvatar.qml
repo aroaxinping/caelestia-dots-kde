@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtCore
 import M3Shapes
 import Qt5Compat.GraphicalEffects

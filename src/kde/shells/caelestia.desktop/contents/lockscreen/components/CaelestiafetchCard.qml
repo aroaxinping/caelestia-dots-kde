@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import QtQuick.Effects
 
@@ -97,8 +98,8 @@ Rectangle {
                     // Font sizes here are NOT multiplied by centerScale — matches the
                     // convention used by all other lockscreen cards (MediaCard, NotifDock, etc.)
                     font {
-                        pixelSize: 15
-                        family: "JetBrainsMono Nerd Font, monospace"
+                        pixelSize: Config.sizeSmall
+                        family: Config.fontMono
                         weight: Font.Bold
                     }
                     color: root.clSurface
@@ -108,8 +109,8 @@ Rectangle {
             Text {
                 text: "caelestiafetch.sh"
                 font {
-                    pixelSize: 15
-                    family: "JetBrainsMono Nerd Font, monospace"
+                    pixelSize: Config.sizeSmall
+                    family: Config.fontMono
                 }
                 color: root.clSurfaceFg
                 Layout.fillWidth: true
@@ -162,9 +163,9 @@ Rectangle {
                         required property string modelData
                         text: modelData
                         font {
-                            family: "JetBrainsMono Nerd Font, monospace"
+                            family: Config.fontMono
                             // Fixed px — same convention as MediaCard, NotifDock, GreetingPill
-                            pixelSize: 15
+                            pixelSize: Config.sizeSmall
                         }
                         color: root.clSurfaceFg
                         elide: Text.ElideRight

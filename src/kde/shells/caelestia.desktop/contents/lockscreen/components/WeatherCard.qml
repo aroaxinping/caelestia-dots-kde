@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 
 Rectangle {
@@ -56,7 +57,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root._wd ? root._wd.value : "No weather"
-            font { pixelSize: 15; family: "Outfit" }
+            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
             color: root.clSurfaceVariantFg
         }
 
@@ -66,7 +67,7 @@ Rectangle {
 
             Text {
                 text: root._cc ? root._cc.temp_C + "°C" : "--°C"
-                font { pixelSize: 28; family: "Outfit"; weight: Font.Medium }
+                font { pixelSize: Config.sizeVeryLarge; family: Config.fontHeading; weight: Font.Medium }
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
@@ -76,8 +77,8 @@ Rectangle {
                 text: root._wd
                       ? root.getWeatherSymbol(root._wd.value, root._cc.weatherCode)
                       : "cloud"
-                font.family: "Material Symbols Rounded"
-                font.pixelSize: 26
+                font.family: Config.fontIcon
+                font.pixelSize: Config.sizeVeryLarge
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
                 Layout.alignment: Qt.AlignVCenter
@@ -87,7 +88,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: root._cc ? "Feels like " + root._cc.FeelsLikeC + "°C" : "Feels like --°C"
-            font { pixelSize: 14; family: "Outfit" }
+            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
             color: root.clSurfaceVariantFg
         }
 
@@ -96,7 +97,7 @@ Rectangle {
             text: root._day
                   ? "High " + root._day.maxtempC + "°C • Low " + root._day.mintempC + "°C"
                   : "High --°C • Low --°C"
-            font { pixelSize: 14; family: "Outfit" }
+            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
             color: root.clSurfaceVariantFg
         }
     }

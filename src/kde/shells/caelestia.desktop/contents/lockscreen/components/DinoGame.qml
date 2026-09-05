@@ -9,6 +9,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import Caelestia.Services
@@ -177,7 +178,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: "All up to date!"
-            font { pixelSize: 15; family: "Rubik"; weight: Font.Medium }
+            font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
             color: root.activeColor
             opacity: 0.8
         }
@@ -185,7 +186,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: "Click or press Space to play"
-            font { pixelSize: 12; family: "Rubik" }
+            font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
             color: root.activeColor
             opacity: 0.5
         }
@@ -241,7 +242,7 @@ Item {
             anchors.top:    parent.top
             anchors.right:  parent.right
             anchors.margins: 10
-            font { pixelSize: 13; family: "JetBrainsMono Nerd Font, monospace" }
+            font { pixelSize: Config.sizeVerySmall; family: Config.fontMono }
             color: root.activeColor
             opacity: 0.8
         }
@@ -277,13 +278,13 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "G A M E   O V E R"
-                font { pixelSize: 14; family: "Rubik"; weight: Font.Medium }
+                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
                 color: root.activeColor
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Click to restart"
-                font { pixelSize: 12; family: "Rubik" }
+                font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
                 color: root.activeColor
                 opacity: 0.6
             }
@@ -299,13 +300,13 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Y O U   W I N !"
-                font { pixelSize: 14; family: "Rubik"; weight: Font.Medium }
+                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
                 color: root.activeColor
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Now go touch grass"
-                font { pixelSize: 12; family: "Rubik" }
+                font { pixelSize: Config.sizeVerySmall; family: Config.fontBody }
                 color: root.activeColor
                 opacity: 0.6
             }

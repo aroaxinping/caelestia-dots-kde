@@ -5,6 +5,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import org.kde.kirigami as Kirigami
@@ -124,7 +125,7 @@ Rectangle {
                 text: root.liveNotifs.length > 0
                       ? (root.liveNotifs.length + (root.liveNotifs.length === 1 ? " notification" : " notifications"))
                       : "Notifications"
-                font { pixelSize: 15; family: "Rubik"; weight: Font.Medium }
+                font { pixelSize: Config.sizeSmall; family: Config.fontBody; weight: Font.Medium }
                 color: root.clOutline
                 elide: Text.ElideRight
             }
@@ -143,8 +144,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "clear_all"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20 * root.centerScale
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeLarge * root.centerScale
                     color: root.clSurfaceFg
                 }
                 
@@ -331,14 +332,14 @@ Rectangle {
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.appName
-                                font { pixelSize: 16; family: "Rubik"; weight: Font.Medium }
+                                font { pixelSize: Config.sizeMedium; family: Config.fontBody; weight: Font.Medium }
                                 color: root.clSurfaceVariantFg
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 text: root.formatNotifTime(modelData.latestTime)
-                                font { pixelSize: 14; family: "Rubik" }
+                                font { pixelSize: Config.sizeSmall; family: Config.fontBody }
                                 color: root.clOutline
                             }
 
@@ -358,14 +359,14 @@ Rectangle {
 
                                     Text {
                                         text: modelData.notifs.length
-                                        font { pixelSize: 13; family: "Rubik"; weight: Font.Medium }
+                                        font { pixelSize: Config.sizeVerySmall; family: Config.fontBody; weight: Font.Medium }
                                         color: root.clSurfaceFg
                                     }
 
                                     Text {
                                         text: groupCard.expanded ? "expand_less" : "expand_more"
-                                        font.family: "Material Symbols Rounded"
-                                        font.pixelSize: 16
+                                        font.family: Config.fontIcon
+                                        font.pixelSize: Config.sizeMedium
                                         color: root.clSurfaceFg
                                     }
                                 }
@@ -392,7 +393,7 @@ Rectangle {
                                     anchors.right: parent.right
                                     textFormat: Text.StyledText
                                     elide: Text.ElideRight
-                                    font { pixelSize: 14; family: "Rubik" }
+                                    font { pixelSize: Config.sizeSmall; family: Config.fontBody }
                                     text: {
                                         var sum = (modelData.summary || "").replace(/\n/g, " ");
                                         var body = (modelData.body || "").replace(/\n/g, " ");

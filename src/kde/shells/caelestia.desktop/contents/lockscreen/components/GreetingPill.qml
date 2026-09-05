@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 
 Rectangle {
@@ -30,7 +31,7 @@ Rectangle {
         Text {
             text: root.greetingInfo ? (root.greetingInfo.icon || "") : ""
             font.family: "Material Symbols Rounded"
-            font.pixelSize: 20
+            font.pixelSize: Config.sizeLarge
             color: root.greetingInfo ? (root.greetingInfo.iconColor || root.clPrimary) : root.clPrimary
         }
         RowLayout {
@@ -38,12 +39,12 @@ Rectangle {
             Text {
                 text: (root.greetingInfo ? root.greetingInfo.greeting : "") + ","
                 color: root.clSurfaceVariantFg
-                font { pixelSize: 15; family: "Rubik" }
+                font { pixelSize: Config.sizeSmall; family: "Rubik" }
             }
             Text {
                 text: root.userName || "User"
                 color: root.clPrimary
-                font { pixelSize: 15; family: "Rubik"; weight: Font.Bold }
+                font { pixelSize: Config.sizeSmall; family: "Rubik"; weight: Font.Bold }
             }
         }
     }

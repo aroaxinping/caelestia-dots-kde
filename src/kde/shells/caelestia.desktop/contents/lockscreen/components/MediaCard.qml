@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
@@ -74,7 +75,7 @@ Rectangle {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackTitle ?? "Nothing playing"
             text: root.hasMedia ? (root.mediaInfo.title || "") : qsTr("Nothing playing")
-            font { pixelSize: 18; family: "Outfit"; weight: Font.Medium }
+            font { pixelSize: Config.sizeMedium; family: Config.fontHeading; weight: Font.Medium }
             color: root.clSurfaceFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -84,7 +85,7 @@ Rectangle {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackArtist ?? "Try playing some music!"
             text: root.hasMedia ? (root.mediaInfo.artist || "") : qsTr("Try playing some music!")
-            font { pixelSize: 15; family: "Outfit" }
+            font { pixelSize: Config.sizeSmall; family: Config.fontHeading }
             color: root.clSurfaceVariantFg
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
@@ -105,8 +106,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "skip_previous"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 22
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeLarge
                     color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {
@@ -127,8 +128,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: (root.hasMedia && root.mediaInfo.status === "Playing") ? "pause" : "play_arrow"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 26
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeVeryLarge
                     color: root.hasMedia ? root.clSurface : root.clSurfaceVariantFg
                 }
                 MouseArea {
@@ -149,8 +150,8 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "skip_next"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 22
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeLarge
                     color: root.hasMedia ? root.clSurfaceFg : root.clSurfaceVariantFg
                 }
                 MouseArea {

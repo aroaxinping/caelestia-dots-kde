@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import QtQuick.Shapes
 import M3Shapes
@@ -73,7 +74,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: root.liveTemp + "°C"
-                    font { pixelSize: 13; family: "Google Sans Flex"; weight: Font.Medium }
+                    font { pixelSize: Config.sizeVerySmall; family: Config.fontMetrics; weight: Font.Medium }
                     color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
@@ -197,15 +198,15 @@ Rectangle {
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.icon
-                font.family: "Material Symbols Rounded"
-                font.pixelSize: 28
+                font.family: Config.fontIcon
+                font.pixelSize: Config.sizeVeryLarge
                 color: res.iconColor
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.value
-                font { pixelSize: 20; family: "Google Sans Flex"; weight: Font.Medium }
+                font { pixelSize: Config.sizeLarge; family: Config.fontMetrics; weight: Font.Medium }
                 color: res.valueColor
             }
         }

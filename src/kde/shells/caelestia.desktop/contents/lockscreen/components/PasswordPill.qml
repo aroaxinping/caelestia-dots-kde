@@ -4,11 +4,11 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import M3Shapes
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.private.sessions
-import ".."
 
 FocusScope {
     id: root
@@ -61,7 +61,7 @@ FocusScope {
     TextMetrics {
         id: placeholderMetrics
         text: root.isAuthenticating ? qsTr("Loading...") : qsTr("Enter your password")
-        font { pixelSize: 15; family: "Outfit"; weight: Font.Normal }
+        font { pixelSize: Config.sizeSmall; family: Config.fontHeading; weight: Font.Normal }
     }
 
     readonly property real collapsedWidth: Math.min(
@@ -113,9 +113,9 @@ FocusScope {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.hasFingerprint ? "fingerprint" : "lock"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 22
+                    text: root.hasFingerprint ? "fingerprint" : "face"
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeLarge
                     color: root.clSurfaceVariantFg
                     visible: !root.isAuthenticating
                 }
@@ -275,8 +275,8 @@ FocusScope {
                     id: enterIcon
                     anchors.centerIn: parent
                     text: "arrow_forward"
-                    font.family: "Material Symbols Rounded"
-                    font.pixelSize: 20
+                    font.family: Config.fontIcon
+                    font.pixelSize: Config.sizeLarge
                     color: root.clSurfaceVariantFg
                     opacity: passwordBox.text.length > 0 ? 0 : 1
                     Behavior on opacity { NumberAnimation { duration: 150 } }

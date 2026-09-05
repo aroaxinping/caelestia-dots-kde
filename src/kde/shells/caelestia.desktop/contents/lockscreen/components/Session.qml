@@ -4,6 +4,7 @@
 */
 
 import QtQuick
+import ".."
 import QtQuick.Layouts
 import org.kde.plasma.plasma5support as Plasma5Support
 
@@ -33,8 +34,8 @@ Item {
     Text {
         anchors.centerIn: parent
         text: "logout"
-        font.family: "Material Symbols Rounded"
-        font.pixelSize: 22 * centerScale
+        font.family: Config.fontIcon
+        font.pixelSize: Config.sizeLarge * centerScale
         color: logoutMouse.containsMouse ? root.clPrimary : root.clSurfaceVariantFg
         Behavior on color { ColorAnimation { duration: 150 } }
     }
