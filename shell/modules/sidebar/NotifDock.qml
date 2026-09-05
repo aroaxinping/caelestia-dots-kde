@@ -159,14 +159,14 @@ Item {
                 implicitWidth: implicitHeight
                 implicitHeight: icon.implicitHeight + Tokens.padding.large
                 radius: Tokens.rounding.full
-                color: Visibilities.isCaelestiaMode ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
+                color: GlobalConfig.general.caelestiaMode ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
                 
                 MaterialIcon {
                     id: icon
 
                     anchors.centerIn: parent
                     text: "auto_awesome"
-                    color: Visibilities.isCaelestiaMode ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
+                    color: GlobalConfig.general.caelestiaMode ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
                     fontStyle: Tokens.font.icon.large
                 }
             }
@@ -184,7 +184,7 @@ Item {
                 
                 StyledText {
                     Layout.fillWidth: true
-                    text: Visibilities.isCaelestiaMode ? "Spinning kurukuru activated" : "Classic dinosaur character"
+                    text: GlobalConfig.general.caelestiaMode ? "Spinning kurukuru activated" : "Classic dinosaur character"
                     color: Colours.palette.m3outlineVariant
                     font: Tokens.font.body.small
                     elide: Text.ElideRight
@@ -192,9 +192,9 @@ Item {
             }
             
             StyledSwitch {
-                checked: Visibilities.isCaelestiaMode
+                checked: GlobalConfig.general.caelestiaMode
                 onToggled: {
-                    Visibilities.isCaelestiaMode = checked;
+                    GlobalConfig.general.caelestiaMode = checked;
                 }
             }
         }

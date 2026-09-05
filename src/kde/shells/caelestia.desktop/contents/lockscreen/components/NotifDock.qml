@@ -13,6 +13,7 @@ Rectangle {
 
     property var liveNotifs: []
     property real centerScale: 1.0
+    property bool isCaelestiaMode: false
 
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
@@ -120,36 +121,54 @@ Rectangle {
                 color: root.clOutline
                 elide: Text.ElideRight
             }
+
+            Rectangle {
+                visible: root.liveNotifs.length > 0
+                implicitWidth: 32 * root.centerScale
+                implicitHeight: 32 * root.centerScale
+                radius: height / 2
+                color: "transparent"
+                
+                Text {
+                    anchors.centerIn: parent
+                    text: "clear_all"
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 20 * root.centerScale
+                    color: root.clSurfaceFg
+                }
+                
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.clearAllRequested()
+                    onEntered: parent.color = Qt.rgba(255, 255, 255, 0.1)
+                    onExited: parent.color = "transparent"
+                }
+            }
         }
 
-        // Empty State
-        ColumnLayout {
+        // Empty/idle state: show DinoGame when there are no notifications.
+        // When the game is active it stays visible even if a notification arrives
+        // (so the player isn't interrupted mid-jump), matching sidebar behaviour.
+        Loader {
+            id: dinoLoader
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.alignment: Qt.AlignCenter
-            visible: root.liveNotifs.length === 0
-            spacing: 8 * centerScale
+            Layout.preferredHeight: 200
+            // Active when empty OR while game is running
+            active: root.liveNotifs.length === 0 || isGameRunning
+            readonly property bool isGameRunning: item !== null && item.isPlaying
+            opacity: active ? 1 : 0
+            visible: active
+            Behavior on opacity { NumberAnimation { duration: 250 } }
 
-            Item { Layout.fillHeight: true }
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: "notifications_off"
-                font.family: "Material Symbols Rounded"
-                font.pixelSize: 32 * centerScale
-                color: root.clOutline
-                opacity: 0.5
+            sourceComponent: DinoGame {
+                width: dinoLoader.width
+                height: 200
+                // Wire palette so the dino matches card colours
+                activeColor: root.clSurfaceVariantFg
+                isCaelestiaMode: root.isCaelestiaMode
             }
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: "No Notifications"
-                font { pixelSize: 14 * centerScale; family: "Rubik" }
-                color: root.clOutline
-                opacity: 0.7
-            }
-
-            Item { Layout.fillHeight: true }
         }
 
         // Categorized Notifications List

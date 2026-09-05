@@ -35,6 +35,7 @@ Item {
     // use12h: read from ~/.config/caelestia/shell.json services.useTwelveHourClock if set,
     // otherwise fall back to the system locale — same logic as serviceconfig.hpp default.
     property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
+    property bool isCaelestiaMode: false
     readonly property real bgRadius: 42 * (lockHeight / 1080)
     readonly property real bgMargin: 16 * (lockHeight / 1080)
     readonly property real cardRadius: bgRadius - bgMargin
@@ -123,6 +124,13 @@ Item {
                 var svc = cfg.services || {};
                 if (typeof svc.useTwelveHourClock === "boolean")
                     lockScreenUi.use12h = svc.useTwelveHourClock;
+                
+                if (typeof cfg.caelestiaMode === "boolean")
+                    lockScreenUi.isCaelestiaMode = cfg.caelestiaMode;
+                else if (typeof svc.caelestiaMode === "boolean")
+                    lockScreenUi.isCaelestiaMode = svc.caelestiaMode;
+                else if (cfg.general && typeof cfg.general.caelestiaMode === "boolean")
+                    lockScreenUi.isCaelestiaMode = cfg.general.caelestiaMode;
             } catch(e) {}
         }
     }
@@ -645,6 +653,7 @@ Item {
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
+                        isCaelestiaMode: lockScreenUi.isCaelestiaMode
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest

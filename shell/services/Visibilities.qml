@@ -10,7 +10,6 @@ Singleton {
     property var bars: new Map()
     property string launcherInitialSearch: ""
     property string initialSidebarTab: "notifications"
-    property bool isCaelestiaMode: false
     property string preOverviewActiveWindowAddress: ""
     // A window card being dragged, shared so every screen's overview knows about
     // it.
