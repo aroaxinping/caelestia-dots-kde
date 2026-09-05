@@ -143,11 +143,23 @@ Rectangle {
 
             Shape {
                 id: wave
-                anchors.left: parent.left
-                anchors.right: parent.right
                 anchors.bottom: parent.bottom
+                property real wl: parent.width / 3
+                width: parent.width + wl
                 height: Math.max(0, Math.min(parent.height, parent.height * res.fillPercent))
                 visible: height > 0
+                
+                Behavior on height {
+                    NumberAnimation { duration: 1000; easing.type: Easing.OutCubic }
+                }
+
+                NumberAnimation on x {
+                    from: 0
+                    to: -wave.wl
+                    duration: 1500
+                    loops: Animation.Infinite
+                    running: wave.visible
+                }
 
                 ShapePath {
                     strokeWidth: 0
@@ -160,8 +172,8 @@ Rectangle {
                             const h = wave.height;
                             if (w <= 0 || h <= 0) return "";
                             const a = 2.5 * res.centerScale;
-                            const n = 3;
-                            const wl = w / n;
+                            const n = 4;
+                            const wl = wave.wl;
                             const half = wl / 2;
 
                             let d = `M 0,${a} `;

@@ -185,7 +185,7 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     text: GlobalConfig.general.caelestiaMode ? "Spinning kurukuru activated" : "Classic dinosaur character"
-                    color: Colours.palette.m3outlineVariant
+                    color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.body.small
                     elide: Text.ElideRight
                 }

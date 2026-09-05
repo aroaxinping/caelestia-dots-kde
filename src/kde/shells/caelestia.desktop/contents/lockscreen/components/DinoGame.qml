@@ -75,8 +75,25 @@ Item {
 
     // ── Idle scene (not playing, not game-over) ──
     ColumnLayout {
+        id: idleScene
         anchors.centerIn: parent
-        visible: !root.isPlaying && !root.isGameOver
+        
+        // Start hidden so the Behavior catches the change on startup
+        property bool show: false
+        opacity: show ? 1 : 0
+        visible: opacity > 0
+        // Use a slight vertical shift for a slide-up effect
+        transform: Translate { y: idleScene.show ? 0 : 20; Behavior on y { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } } }
+        
+        Behavior on opacity { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
+        
+        // Trigger initial animation
+        Component.onCompleted: {
+            Qt.callLater(function() { 
+                show = Qt.binding(function() { return !root.isPlaying && !root.isGameOver; }); 
+            });
+        }
+        
         spacing: 16
 
         Item {

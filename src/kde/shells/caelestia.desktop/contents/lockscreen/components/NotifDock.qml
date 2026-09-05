@@ -1,3 +1,4 @@
+
 /*
     SPDX-FileCopyrightText: 2024 ladybug-me
     SPDX-License-Identifier: GPL-2.0-or-later
@@ -24,6 +25,9 @@ Rectangle {
     property color clOutline: "#837174"
 
     signal clearAllRequested()
+    signal dndRequested(bool enabled)
+    
+    property bool isSystemDndEnabled: false
 
     property var groupedNotifs: []
 
@@ -103,14 +107,17 @@ Rectangle {
     color: clSurfaceContainer
     clip: true
 
-    ColumnLayout {
-        anchors.fill: parent
+    // Header
+    RowLayout {
+        id: headerRow
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.margins: 16 * centerScale
-        spacing: 12 * centerScale
-
-        // Header
-        RowLayout {
-            Layout.fillWidth: true
+        
+        opacity: (dinoLoader.isGameRunning || root.isSystemDndEnabled) ? 0 : 1
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 250 } }
 
             Text {
                 Layout.fillWidth: true
@@ -123,7 +130,11 @@ Rectangle {
             }
 
             Rectangle {
-                visible: root.liveNotifs.length > 0
+                scale: root.liveNotifs.length > 0 ? 1 : 0.5
+                opacity: root.liveNotifs.length > 0 ? 1 : 0
+                visible: opacity > 0
+                Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
+                Behavior on opacity { NumberAnimation { duration: 250 } }
                 implicitWidth: 32 * root.centerScale
                 implicitHeight: 32 * root.centerScale
                 radius: height / 2
@@ -149,37 +160,79 @@ Rectangle {
         }
 
         // Empty/idle state: show DinoGame when there are no notifications.
-        // When the game is active it stays visible even if a notification arrives
-        // (so the player isn't interrupted mid-jump), matching sidebar behaviour.
         Loader {
             id: dinoLoader
-            Layout.fillWidth: true
-            Layout.preferredHeight: 200
-            // Active when empty OR while game is running
-            active: root.liveNotifs.length === 0 || isGameRunning
-            readonly property bool isGameRunning: item !== null && item.isPlaying
+            z: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: headerRow.bottom
+            anchors.bottom: parent.bottom
+            anchors.margins: 16 * centerScale
+            anchors.topMargin: 12 * centerScale
+            
+            // Active when empty OR while game is running OR system DND is enabled
+            active: root.liveNotifs.length === 0 || isGameRunning || root.isSystemDndEnabled
+            readonly property bool isGameRunning: item !== null && item.isPlaying === true
+            
+            onIsGameRunningChanged: {
+                root.dndRequested(isGameRunning)
+            }
+            
             opacity: active ? 1 : 0
             visible: active
             Behavior on opacity { NumberAnimation { duration: 250 } }
 
-            sourceComponent: DinoGame {
-                width: dinoLoader.width
-                height: 200
-                // Wire palette so the dino matches card colours
-                activeColor: root.clSurfaceVariantFg
-                isCaelestiaMode: root.isCaelestiaMode
+            sourceComponent: Item {
+                readonly property bool isPlaying: dinoGame.isPlaying
+                DinoGame {
+                    id: dinoGame
+                    anchors.centerIn: parent
+                    width: dinoLoader.width
+                    height: 200
+                    // Wire palette so the dino matches card colours
+                    activeColor: root.clSurfaceVariantFg
+                    isCaelestiaMode: root.isCaelestiaMode
+                }
             }
         }
 
         // Categorized Notifications List
         ListView {
             id: notifListView
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: headerRow.bottom
+            anchors.bottom: parent.bottom
+            anchors.margins: 16 * centerScale
+            anchors.topMargin: 12 * centerScale
             clip: true
+            
+            opacity: (dinoLoader.isGameRunning || root.isSystemDndEnabled) ? 0 : 1
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 250 } }
             spacing: 10 * root.centerScale
             boundsBehavior: Flickable.StopAtBounds
-            visible: root.liveNotifs.length > 0
+            
+            add: Transition {
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 250 }
+                    NumberAnimation { property: "scale"; from: 0.8; to: 1; duration: 250; easing.type: Easing.OutBack }
+                }
+            }
+            addDisplaced: Transition {
+                NumberAnimation { properties: "x,y"; duration: 250; easing.type: Easing.OutQuad }
+            }
+            
+            remove: Transition {
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; to: 0; duration: 250 }
+                    NumberAnimation { property: "scale"; to: 0.8; duration: 250; easing.type: Easing.InBack }
+                }
+            }
+            removeDisplaced: Transition {
+                NumberAnimation { properties: "x,y"; duration: 250; easing.type: Easing.OutQuad }
+            }
+            
             model: root.groupedNotifs
 
             delegate: Rectangle {
@@ -358,4 +411,3 @@ Rectangle {
             }
         }
     }
-}

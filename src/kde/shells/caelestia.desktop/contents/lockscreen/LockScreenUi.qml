@@ -243,6 +243,8 @@ Item {
 
     property var liveNotifs: []
 
+    property bool ignoreNotifs: false
+
     Plasma5Support.DataSource {
         id: notifLoader
         engine: "executable"
@@ -251,6 +253,7 @@ Item {
             var stdout = data["stdout"] || "";
             disconnectSource(source);
             if (!stdout) return;
+            if (lockScreenUi.ignoreNotifs) return;
             try {
                 var arr = JSON.parse(stdout);
                 if (Array.isArray(arr)) {
@@ -281,7 +284,16 @@ Item {
         }
         function clearAll() {
             connectSource("caelestia-shell-ipc call notifs clear");
+            lockScreenUi.liveNotifs = [];
+            lockScreenUi.ignoreNotifs = true;
+            ignoreTimer.restart();
         }
+    }
+
+    Timer {
+        id: ignoreTimer
+        interval: 3500
+        onTriggered: lockScreenUi.ignoreNotifs = false;
     }
 
     property var greetingInfo: getGreeting()
