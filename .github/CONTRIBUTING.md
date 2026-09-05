@@ -35,14 +35,14 @@ Make your changes in the cloned repo, test them (see below), then open a PR. Tha
 
 ### For QML / shell changes
 
-Edit files in `~/.config/quickshell/caelestia/`. Changes reload automatically - no restart needed.
+Edit files in `~/.config/quickshell/caelestia/`. Restart the shell.
 
 ```bash
-# View live logs
-caelestia-shell-ipc log
-
 # Restart the shell cleanly
 ~/.config/quickshell/caelestia/scripts/restart_shell.sh
+
+# View live logs
+caelestia-shell-ipc log
 ```
 
 **Editor setup:**
@@ -50,12 +50,23 @@ caelestia-shell-ipc log
 - Run `touch ~/.config/quickshell/caelestia/.qmlls.ini` for QML language server support
 - In VS Code, install the "Qt Qml" extension and set the `qmlls` path to `/usr/bin/qmlls6`
 
+
+### For C++ plugin changes
+
+```bash
+bash scripts/08-build-shell.sh   # Recompiles and installs the plugins
+bash shell/scripts/restart_shell.sh  # Restart to pick up the new .so
+```
+
+The build keeps one core free and runs at a lower priority so the session stays
+usable. Set `CAELESTIA_BUILD_JOBS` to override the job count.
+
 ### For Lock screen changes
 
 The lock screen is a native KDE Plasma 6 shell package located in `src/kde/shells/caelestia.desktop/`.
 
 ```bash
-# Copy lock screen files to the local Plasma shells directory
+# Copy the files to the local Plasma shells directory
 mkdir -p ~/.local/share/plasma/shells/
 cp -r src/kde/shells/caelestia.desktop ~/.local/share/plasma/shells/
 
@@ -65,19 +76,6 @@ kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelest
 # Test the lock screen safely in an interactive window (without locking your session)
 /usr/lib/kscreenlocker_greet --testing
 ```
-
-- **Styling**: Uses frosted-glass blur textures via native wallpaper `FastBlur` with translucent backgrounds (`Qt.rgba(..., 0.55)`) and concentric corner radii (`cardRadius = bgRadius - bgMargin = 26px`).
-- **Avatars**: The greeter checks `~/.face` first and dynamically falls back to the system profile picture (`kscreenlocker_userImage`) and the default user icon.
-
-### For C++ plugin changes
-
-```bash
-bash scripts/08-build-shell.sh   # Recompiles and installs the plugins
-caelestia shell -k && caelestia shell -d   # Restart to pick up the new .so
-```
-
-The build keeps one core free and runs at a lower priority so the session stays
-usable. Set `CAELESTIA_BUILD_JOBS` to override the job count.
 
 ### For installer changes
 
@@ -97,6 +95,10 @@ scripts/update-translations.sh es       # start a new one (Spanish here)
 Translate `shell/translations/caelestia_<code>.ts`, rebuild the shell, then pick
 the language in Nexus -> Language & region. See
 [Translations](docs/translations.md) for the full guide.
+
+### For creating plugins
+
+Head to [caelestia-kde-plugins](https://github.com/ladybug-me/caelestia-kde-plugins) for the plugin templates and guidelines.
 
 ## Code style (the short version)
 
