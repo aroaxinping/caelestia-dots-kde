@@ -267,7 +267,14 @@ void KWinActiveWindowBridge::buildWindowList() {
     if (activeWindowFound && m_activeWindow != newActiveWindow) {
         m_activeWindow = newActiveWindow;
         emit activeWindowChanged();
-        
+
+        // Keep activeOutputName in sync so Hypr.focusedMonitor resolves correctly
+        // on multi-monitor setups. Without this it stays empty forever and the QML
+        // fallback always picks monitor index 0.
+        const QString newOutput = newActiveWindow.value("output").toString();
+        if (!newOutput.isEmpty())
+            setActiveOutputName(newOutput);
+
         if (m_activeWindow.value("address").toString() == m_pendingFocusAddress) {
             m_pendingFocusAddress.clear();
             emit pendingFocusAddressChanged();
