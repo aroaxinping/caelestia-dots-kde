@@ -51,6 +51,16 @@ export QS_DROP_EXPENSIVE_FONTS=1
 export QS_DISABLE_CRASH_HANDLER=1
 export QSG_RENDER_LOOP=threaded
 export QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
+# Self-heal Caelestia lock screen if KDE updates or kconf_update reset it
+if [ -f "\$HOME/.local/share/plasma/shells/caelestia.desktop/contents/lockscreen/LockScreen.qml" ] || [ -f "/usr/share/plasma/shells/caelestia.desktop/contents/lockscreen/LockScreen.qml" ]; then
+    if command -v kreadconfig6 >/dev/null 2>&1 && command -v kwriteconfig6 >/dev/null 2>&1; then
+        current_shell="\$(kreadconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" 2>/dev/null || true)"
+        if [ "\$current_shell" != "caelestia.desktop" ]; then
+            kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelestia.desktop" 2>/dev/null || true
+        fi
+        kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" --delete 2>/dev/null || true
+    fi
+fi
 # No --daemonize: the autostart entry already runs under a systemd user unit,
 # which supervises the process and connects its stdout/stderr to the journal.
 # Detaching would replace that with /dev/null, and every application launched

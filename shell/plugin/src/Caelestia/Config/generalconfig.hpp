@@ -85,6 +85,7 @@ class GeneralConfig : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, debugLogs, false)
     CONFIG_PROPERTY(bool, checkUpdates, true)
     CONFIG_PROPERTY(bool, magicLampEnabled, true)
+    CONFIG_PROPERTY(bool, caelestiaMode, false)
     CONFIG_PROPERTY(bool, krohnkiteEnabled, false)
     CONFIG_PROPERTY(QString, krohnkiteLastLayout, "BTree")
     CONFIG_SUBOBJECT(GeneralApps, apps)

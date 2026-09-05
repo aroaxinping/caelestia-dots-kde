@@ -113,7 +113,7 @@ Scope {
         }
     }
     // qmllint disable unresolved-type
-    // USING plasma-wallpaper-application plugin for now
+    // Using Caelestia lockscreen greeter
     // CustomShortcut {
     //     // qmllint enable unresolved-type
     //     name: "lock"
