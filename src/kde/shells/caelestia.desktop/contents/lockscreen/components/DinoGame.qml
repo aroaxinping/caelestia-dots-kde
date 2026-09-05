@@ -316,13 +316,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            root.forceActiveFocus();
             DinoGameBackend.jump();
         }
     }
-
-    Keys.onSpacePressed:  (e) => { if (!e.isAutoRepeat) DinoGameBackend.jump(); }
-    Keys.onUpPressed:     (e) => { if (!e.isAutoRepeat) DinoGameBackend.jump(); }
-    Keys.onDownPressed:   (e) => { if (!e.isAutoRepeat) DinoGameBackend.isDucking = true; }
-    Keys.onReleased:      (e) => { if (e.key === Qt.Key_Down) DinoGameBackend.isDucking = false; }
 }

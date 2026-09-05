@@ -10,7 +10,7 @@ import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.private.sessions
 import ".."
 
-Item {
+FocusScope {
     id: root
 
     property real centerScale: 1.0
@@ -31,10 +31,6 @@ Item {
     property real shakeX: 0
 
     signal loginRequested(string password)
-
-    function forceActiveFocus() {
-        passwordBox.forceActiveFocus();
-    }
 
     function shake() {
         rejectAnim.restart();
@@ -229,7 +225,7 @@ Item {
                     cursorDelegate: Item {}
                     echoMode: TextInput.NoEcho
                     focus: true
-                    enabled: !root.graceLocked
+                    enabled: !root.graceLocked && !root.isAuthenticating
                     text: PasswordSync.password
 
                     onTextChanged: {
@@ -271,7 +267,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: passwordBox.text.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: if (passwordBox.text.length > 0) root.loginRequested(passwordBox.text)
+                        onClicked: if (passwordBox.text.length > 0 && !root.isAuthenticating) root.loginRequested(passwordBox.text)
                     }
                 }
 
