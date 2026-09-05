@@ -50,18 +50,19 @@ bash ./uninstall.sh
 <!-- markdownlint-disable-next-line MD034 -- a bare URL is what GitHub turns into an inline video player -->
 https://github.com/user-attachments/assets/4c3e20c9-5050-4cc8-8e9c-32fd0594ac8b
 
-| Shell | Theming |
+| Shell | Lockscreen |
 | :---: | :---: |
-| <img width="460" alt="shell" src="assets/shell-screenshot.png" /> | <img width="460" alt="theming" src="assets/theming-screenshot.png" /> |
+| <img width="460" alt="shell" src="assets/theming-screenshot.png" /> | <img width="460" alt="lockscreen" src="assets/lockscreen-screenshot.png" /> |
 
 ## Keybinds
 
 | Shortcut | Action |
 | --- | --- |
+| `Super` | App launcher |
 | `Super + /` | Keybind cheatsheet |
 | `Super + Enter` | Terminal |
+| `Super + Tab` | Overview |
 | `Super + 1–5` | Switch workspace |
-| `Super + Space` | App launcher |
 | `Super + B` | Notification sidebar |
 | `Super + V` | Clipboard history |
 | `Super + Shift + S` | Screenshot |
