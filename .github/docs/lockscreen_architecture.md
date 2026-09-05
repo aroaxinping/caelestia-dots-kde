@@ -22,10 +22,12 @@ The lock screen greeter source is located in `src/kde/shells/caelestia.desktop/`
 
 ```
 src/kde/shells/caelestia.desktop/
-├── metadata.json                          # Package metadata (KPackageStructure: Plasma/Shell)
+├── metadata.json                          # KPackage manifest required by kpackagetool6 / plasmashell.
+│                                          # Declares KPackageStructure=Plasma/Shell so the package is
+│                                          # recognized as a greeter shell, not a plugin or applet.
 └── contents/
     └── lockscreen/
-        ├── LockScreen.qml                 # Main shell entry wrapper
+        ├── LockScreen.qml                 # Main shell entry wrapper (exposes `locked` to kscreenlocker)
         ├── LockScreenUi.qml               # Root UI layout, scaling, wallpaper blur, & palette
         ├── components/
         │   ├── ClockWidget.qml            # Stacked hour/minute clock & formatted date
@@ -38,7 +40,7 @@ src/kde/shells/caelestia.desktop/
         │   ├── ResourcesCard.qml          # CPU, RAM, and Disk resource meters with live temp badge
         │   └── NotifDock.qml              # Categorized notification dock with expandable groups
         └── scripts/
-            └── sysinfo.py                 # Live system metrics backend script
+            └── sysinfo.py                 # system info fetch script
 ```
 
 ---

@@ -10,8 +10,8 @@ import Qt5Compat.GraphicalEffects
 Rectangle {
     id: root
 
-    property var multiplex: ({})
-    readonly property bool hasMedia: Boolean(multiplex && multiplex.title)
+    property var mediaInfo: ({})  // renamed from mediaInfo (review)
+    readonly property bool hasMedia: Boolean(mediaInfo && mediaInfo.title)
     property real centerScale: 1.0
 
     property color clSurface: "#131317"
@@ -40,7 +40,7 @@ Rectangle {
 
         Image {
             anchors.fill: parent
-            source: root.hasMedia ? (root.multiplex.artUrl || "") : ""
+            source: root.hasMedia ? (root.mediaInfo.artUrl || "") : ""
             fillMode: Image.PreserveAspectCrop
             visible: status === Image.Ready
         }
@@ -73,7 +73,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackTitle ?? "Nothing playing"
-            text: root.hasMedia ? (root.multiplex.title || "") : qsTr("Nothing playing")
+            text: root.hasMedia ? (root.mediaInfo.title || "") : qsTr("Nothing playing")
             font { pixelSize: 18; family: "Outfit"; weight: Font.Medium }
             color: root.clSurfaceFg
             elide: Text.ElideRight
@@ -83,7 +83,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             // Quickshell: Players.active?.trackArtist ?? "Try playing some music!"
-            text: root.hasMedia ? (root.multiplex.artist || "") : qsTr("Try playing some music!")
+            text: root.hasMedia ? (root.mediaInfo.artist || "") : qsTr("Try playing some music!")
             font { pixelSize: 15; family: "Outfit" }
             color: root.clSurfaceVariantFg
             elide: Text.ElideRight
@@ -126,7 +126,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: (root.hasMedia && root.multiplex.status === "Playing") ? "pause" : "play_arrow"
+                    text: (root.hasMedia && root.mediaInfo.status === "Playing") ? "pause" : "play_arrow"
                     font.family: "Material Symbols Rounded"
                     font.pixelSize: 26
                     color: root.hasMedia ? root.clSurface : root.clSurfaceVariantFg

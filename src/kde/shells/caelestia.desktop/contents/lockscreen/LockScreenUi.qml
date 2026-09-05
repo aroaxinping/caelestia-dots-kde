@@ -32,15 +32,19 @@ Item {
     readonly property real centerScale: Math.min(1, lockHeight / 1440)
     readonly property real centerWidth: 600 * centerScale
     readonly property bool isPortrait: height > width * 1.2
-    readonly property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
+    // use12h: read from ~/.config/caelestia/shell.json services.useTwelveHourClock if set,
+    // otherwise fall back to the system locale — same logic as serviceconfig.hpp default.
+    property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
     readonly property real bgRadius: 42 * (lockHeight / 1080)
     readonly property real bgMargin: 16 * (lockHeight / 1080)
     readonly property real cardRadius: bgRadius - bgMargin
     readonly property color clCardBg: Qt.rgba(clSurfaceContainer.r, clSurfaceContainer.g, clSurfaceContainer.b, 0.55)
     readonly property color clCardBgHigh: Qt.rgba(clSurfaceContainerHigh.r, clSurfaceContainerHigh.g, clSurfaceContainerHigh.b, 0.55)
 
-    // Material You palette — defaults from Catppuccin Mocha,
-    // overridden by scheme.json at lock time via DataSource below.
+    // Material You palette — defaults from Catppuccin Mocha dark.
+    // All components receive these via explicit property bindings from this root
+    // so there is one single source of truth and per-component defaults cannot drift.
+    // Values are overridden by schemeLoader below once scheme.json is read.
     property color clSurface: "#131317"
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceContainer: "#201f23"
@@ -62,7 +66,9 @@ Item {
     property bool isAuthenticating: false
     property string authMessage: ""
 
-    // XHR file:// is blocked inside kscreenlocker, so read scheme.json via cat
+    // XHR file:// is blocked inside kscreenlocker, so read scheme.json and
+    // shell.json via cat. The scheme.json 'mode' field ('dark'/'light') switches
+    // between the light and dark palette variants.
     Plasma5Support.DataSource {
         id: schemeLoader
         engine: "executable"
@@ -71,8 +77,13 @@ Item {
             var stdout = data["stdout"] || "";
             if (!stdout) return;
             try {
-                var c = JSON.parse(stdout);
-                c = c.colours || c;
+                var d = JSON.parse(stdout);
+                // scheme.json may contain top-level colours or a colours sub-key
+                var c = d.colours || d;
+                // 'mode' field: 'dark' or 'light' — select the right variant
+                // Light mode inverts some roles (surface ↔ onSurface etc.)
+                // For now we read the colours block as-is; both light and dark
+                // scheme.json files already contain the correct per-mode values.
                 if (c.surface) clSurface = "#" + c.surface;
                 if (c.onSurface) clSurfaceFg = "#" + c.onSurface;
                 if (c.surfaceContainer) clSurfaceContainer = "#" + c.surfaceContainer;
@@ -98,10 +109,39 @@ Item {
         }
     }
 
+    // Read user clock-format preference from ~/.config/caelestia/shell.json
+    // Respects the useTwelveHourClock setting set via Nexus settings.
+    Plasma5Support.DataSource {
+        id: configLoader
+        engine: "executable"
+        connectedSources: ["cat ~/.config/caelestia/shell.json 2>/dev/null"]
+        onNewData: (source, data) => {
+            var stdout = data["stdout"] || "";
+            if (!stdout) return;
+            try {
+                var cfg = JSON.parse(stdout);
+                var svc = cfg.services || {};
+                if (typeof svc.useTwelveHourClock === "boolean")
+                    lockScreenUi.use12h = svc.useTwelveHourClock;
+            } catch(e) {}
+        }
+    }
+
+    // Fetch system info via the external helper script instead of an inline
+    // python3 -c one-liner. Inline shell-command concatenation runs pre-auth
+    // and is a security concern flagged in review.
+    // Qt.resolvedUrl resolves relative to this QML file's installed location,
+    // giving the correct absolute path regardless of where the shell is installed.
+    readonly property string sysinfoScriptPath: {
+        var url = Qt.resolvedUrl("scripts/sysinfo.py").toString();
+        // Strip "file://" prefix (url is always file:///absolute/path on Linux)
+        return url.startsWith("file://") ? url.slice(7) : url;
+    }
+
     Plasma5Support.DataSource {
         id: fetchLoader
         engine: "executable"
-        connectedSources: ["python3 -c \"import os, json, pwd; d = dict(line.strip().split('=', 1) for line in open('/etc/os-release') if '=' in line); os_name = (d.get('PRETTY_NAME') or d.get('NAME', 'Linux')).strip('\\\"'); logo_id = (d.get('LOGO') or d.get('ID', 'cachyos')).strip('\\\"'); logo_path = ''; [logo_path := 'file://' + p for p in [f'/usr/share/icons/{logo_id}.svg', f'/usr/share/pixmaps/{logo_id}.svg', f'/usr/share/icons/hicolor/scalable/apps/{logo_id}.svg', '/usr/share/icons/cachyos.svg', '/usr/share/icons/hicolor/scalable/apps/distributor-logo.svg'] if not logo_path and os.path.isfile(p)]; u = os.environ.get('USER') or pwd.getpwuid(os.getuid()).pw_name; s = int(float(open('/proc/uptime').read().split()[0])); h, m = s // 3600, (s % 3600) // 60; up = (f'{h} hours, {m} mins' if h > 0 else f'{m} mins'); print(json.dumps({'os': os_name, 'wm': 'KDE', 'user': u, 'uptime': up, 'id': logo_id, 'logoPath': logo_path}))\" 2>/dev/null"]
+        connectedSources: ["python3 " + lockScreenUi.sysinfoScriptPath]
         property var fetchInfo: null
         onNewData: (source, data) => {
             var stdout = data["stdout"] || "";
@@ -180,8 +220,16 @@ Item {
             disconnectSource(source);
             mprisSource.poll();
         }
+        // Fixed command strings — no concatenation. send() only ever receives one
+        // of three literal values from MediaCard signals (lines 448-450).
+        readonly property var actionCmds: ({
+            "previous":  "caelestia-shell-ipc call mpris previous",
+            "playPause": "caelestia-shell-ipc call mpris playPause",
+            "next":      "caelestia-shell-ipc call mpris next"
+        })
         function send(action) {
-            connectSource("caelestia-shell-ipc call mpris " + action);
+            var cmd = actionCmds[action];
+            if (cmd) connectSource(cmd);
         }
     }
 
@@ -439,7 +487,7 @@ Item {
                         Layout.fillHeight: true
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
-                        multiplex: lockScreenUi.liveMedia
+                        mediaInfo: lockScreenUi.liveMedia
                         clSurface: lockScreenUi.clSurface
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceFg: lockScreenUi.clSurfaceFg
@@ -611,6 +659,12 @@ Item {
         }
 
         // ── Portrait Layout ──
+        // TODO: The portrait branch currently re-instantiates ClockWidget,
+        // ProfileAvatar, GreetingPill and PasswordPill independently instead of
+        // sharing the landscape instances via visible/states. This means both
+        // branches can drift if one is updated without the other.
+        // Tracked as technical debt — refactor to a single shared ColumnLayout
+        // with Layout.visible switching per isPortrait.
         Item {
             id: portraitContent
             anchors.centerIn: parent

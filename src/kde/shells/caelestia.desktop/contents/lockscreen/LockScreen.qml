@@ -13,6 +13,8 @@ import M3Shapes
 Item {
     id: root
 
+    // kscreenlocker sets and reads this property to track the lock state
+    property bool locked: true
     property bool viewVisible: false
     property string notification
     signal clearPassword()
