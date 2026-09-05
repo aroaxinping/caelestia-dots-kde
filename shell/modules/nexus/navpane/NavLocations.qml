@@ -44,8 +44,8 @@ VerticalFadeFlickable {
                 readonly property int pageIdx: modelData.pageIdx
 
                 readonly property bool isCurrentPage: pageIdx === root.nState.currentPageIdx
-                readonly property bool isCategoryStart: index === 0 || list.model[index - 1].page.category !== page.category
-                readonly property bool isCategoryEnd: index === list.model.length - 1 || list.model[index + 1].page.category !== page.category
+                readonly property bool isCategoryStart: index === 0 || root.filteredPages[index - 1]?.page?.category !== page?.category
+                readonly property bool isCategoryEnd: index === root.filteredPages.length - 1 || root.filteredPages[index + 1]?.page?.category !== page?.category
 
                 Layout.fillWidth: true
                 Layout.topMargin: index !== 0 && isCategoryStart ? Tokens.spacing.medium : 0

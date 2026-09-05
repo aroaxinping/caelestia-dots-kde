@@ -318,7 +318,7 @@ PanelWindow {
             root.screenshotPath, //
             root.action
         )
-        Launch.exec(command);
+        Quickshell.execDetached(command);
         if (root.action == ScreenshotAction.SnipAction.Record || root.action == ScreenshotAction.SnipAction.RecordWithSound) {
             root.phase = RegionSelection.Phase.Post
             root.selectionMode = RegionSelection.SelectionMode.RectCorners
@@ -357,7 +357,7 @@ PanelWindow {
         }
         root.dismiss();
         // Small delay so the window has time to come to front before spectacle fires
-        Qt.callLater(() => { Launch.exec(command); });
+        Qt.callLater(() => { Quickshell.execDetached(command); });
     }
 
     // Only clickable in Selection phase

@@ -30,6 +30,8 @@ ColumnLayout {
         clearIcon.font: Tokens.font.icon.medium
         clearIcon.padding: Tokens.padding.extraSmall
 
+        onTextChanged: root.nState.searchQuery = text
+
         Keys.onReturnPressed: {
             if (root.nState.searchOpen) {
                 searchResults.executeSelected();
@@ -56,6 +58,16 @@ ColumnLayout {
             target: root.nState
             property: "searchOpen"
             value: searchField.text.length > 0
+        }
+
+        Connections {
+            function onSearchQueryChanged() {
+                if (root.nState.searchQuery !== searchField.text) {
+                    searchField.text = root.nState.searchQuery;
+                }
+            }
+
+            target: root.nState
         }
     }
 
