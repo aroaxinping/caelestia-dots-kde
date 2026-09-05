@@ -25,7 +25,7 @@ public:
 
     QVariantMap activeWindow() const;
     QString activeOutputName() const;
-    void setActiveOutputName(const QString &outputName);
+    Q_INVOKABLE void setActiveOutputName(const QString &outputName);
 
     QVariantList windowList() const;
     QString pendingFocusAddress() const;
