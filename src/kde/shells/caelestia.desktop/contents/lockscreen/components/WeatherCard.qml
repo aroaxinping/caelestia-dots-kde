@@ -20,6 +20,13 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius * centerScale
     color: clSurfaceContainer
+
+    readonly property var _cc: weatherInfo && weatherInfo.current_condition && weatherInfo.current_condition.length > 0
+                               ? weatherInfo.current_condition[0] : null
+    readonly property var _wd: _cc && _cc.weatherDesc && _cc.weatherDesc.length > 0
+                               ? _cc.weatherDesc[0] : null
+    readonly property var _day: weatherInfo && weatherInfo.weather && weatherInfo.weather.length > 0
+                                ? weatherInfo.weather[0] : null
     // Natural height = content + vertical padding so the card shrinks-to-fit
     // when Layout.fillHeight is not set (matches Quickshell Content.qml behaviour)
     implicitHeight: weatherContent.implicitHeight + 40 * centerScale
@@ -43,14 +50,12 @@ Rectangle {
         spacing: 4
         // Dim the card while weather data is still loading so the user
         // can see placeholders without them looking like real values
-        opacity: root.weatherInfo ? 1.0 : 0.5
+        opacity: root._cc ? 1.0 : 0.5
         Behavior on opacity { NumberAnimation { duration: 400 } }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo
-                  ? root.weatherInfo.current_condition[0].weatherDesc[0].value
-                  : "No weather"
+            text: root._wd ? root._wd.value : "No weather"
             font { pixelSize: 15; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
@@ -60,9 +65,7 @@ Rectangle {
             spacing: 10
 
             Text {
-                text: root.weatherInfo
-                      ? root.weatherInfo.current_condition[0].temp_C + "°C"
-                      : "--°C"
+                text: root._cc ? root._cc.temp_C + "°C" : "--°C"
                 font { pixelSize: 28; family: "Outfit"; weight: Font.Medium }
                 color: root.clPrimary
                 verticalAlignment: Text.AlignVCenter
@@ -70,9 +73,8 @@ Rectangle {
             }
 
             Text {
-                text: root.weatherInfo
-                      ? root.getWeatherSymbol(root.weatherInfo.current_condition[0].weatherDesc[0].value,
-                                              root.weatherInfo.current_condition[0].weatherCode)
+                text: root._wd
+                      ? root.getWeatherSymbol(root._wd.value, root._cc.weatherCode)
                       : "cloud"
                 font.family: "Material Symbols Rounded"
                 font.pixelSize: 26
@@ -84,17 +86,15 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo
-                  ? "Feels like " + root.weatherInfo.current_condition[0].FeelsLikeC + "°C"
-                  : "Feels like --°C"
+            text: root._cc ? "Feels like " + root._cc.FeelsLikeC + "°C" : "Feels like --°C"
             font { pixelSize: 14; family: "Outfit" }
             color: root.clSurfaceVariantFg
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: root.weatherInfo
-                  ? "High " + root.weatherInfo.weather[0].maxtempC + "°C • Low " + root.weatherInfo.weather[0].mintempC + "°C"
+            text: root._day
+                  ? "High " + root._day.maxtempC + "°C • Low " + root._day.mintempC + "°C"
                   : "High --°C • Low --°C"
             font { pixelSize: 14; family: "Outfit" }
             color: root.clSurfaceVariantFg

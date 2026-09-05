@@ -227,7 +227,7 @@ Item {
                     color: "transparent"
                     cursorVisible: false
                     cursorDelegate: Item {}
-                    echoMode: TextInput.Normal
+                    echoMode: TextInput.NoEcho
                     focus: true
                     enabled: !root.graceLocked
                     text: PasswordSync.password
