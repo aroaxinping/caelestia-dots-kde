@@ -16,6 +16,7 @@ Rectangle {
     property var liveNotifs: []
     property real centerScale: 1.0
     property bool isCaelestiaMode: false
+    property bool hideNotifs: false
 
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
@@ -122,17 +123,19 @@ Rectangle {
 
             Text {
                 Layout.fillWidth: true
-                text: root.liveNotifs.length > 0
-                      ? (root.liveNotifs.length + (root.liveNotifs.length === 1 ? " notification" : " notifications"))
-                      : "Notifications"
+                text: root.hideNotifs
+                      ? "Unlock for Notifications"
+                      : (root.liveNotifs.length > 0
+                          ? (root.liveNotifs.length + (root.liveNotifs.length === 1 ? " notification" : " notifications"))
+                          : "Notifications")
                 font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody; weight: Font.Medium }
                 color: root.clOutline
                 elide: Text.ElideRight
             }
 
             Rectangle {
-                scale: root.liveNotifs.length > 0 ? 1 : 0.5
-                opacity: root.liveNotifs.length > 0 ? 1 : 0
+                scale: (!root.hideNotifs && root.liveNotifs.length > 0) ? 1 : 0.5
+                opacity: (!root.hideNotifs && root.liveNotifs.length > 0) ? 1 : 0
                 visible: opacity > 0
                 Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
                 Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -171,8 +174,8 @@ Rectangle {
             anchors.margins: 16 * centerScale
             anchors.topMargin: 12 * centerScale
             
-            // Active when empty OR while game is running OR system DND is enabled
-            active: root.liveNotifs.length === 0 || isGameRunning || root.isSystemDndEnabled
+            // Active when hideNotifs is set, or empty, or while game is running, or system DND is enabled
+            active: root.hideNotifs || root.liveNotifs.length === 0 || isGameRunning || root.isSystemDndEnabled
             readonly property bool isGameRunning: item !== null && item.isPlaying === true
             
             onIsGameRunningChanged: {
@@ -208,7 +211,7 @@ Rectangle {
             anchors.topMargin: 12 * centerScale
             clip: true
             
-            opacity: (dinoLoader.isGameRunning || root.isSystemDndEnabled) ? 0 : 1
+            opacity: (!root.hideNotifs && !dinoLoader.isGameRunning && !root.isSystemDndEnabled) ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: 250 } }
             spacing: 10 * root.centerScale

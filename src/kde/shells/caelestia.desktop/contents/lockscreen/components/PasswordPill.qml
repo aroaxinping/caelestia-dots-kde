@@ -18,6 +18,7 @@ FocusScope {
     property bool isAuthenticating: false
     property bool graceLocked: false
     property bool hasFingerprint: false
+    property bool fprintDisabledDueToTries: false
 
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
@@ -26,6 +27,7 @@ FocusScope {
     property color clPrimary: "#c2c1ff"
     property color clPrimaryFg: "#2a2a60"
     property color clSecondary: "#c6c4e0"
+    property color clError: "#ffb4ab"
 
     property alias text: passwordBox.text
     property real shakeX: 0
@@ -113,10 +115,10 @@ FocusScope {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.hasFingerprint ? "fingerprint" : "face"
+                    text: root.fprintDisabledDueToTries ? "fingerprint_off" : (root.hasFingerprint ? "fingerprint" : "lock")
                     font.family: LockScreenConfig.fontIcon
                     font.pixelSize: LockScreenConfig.sizeLarge
-                    color: root.clSurfaceVariantFg
+                    color: root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg
                     visible: !root.isAuthenticating
                 }
 

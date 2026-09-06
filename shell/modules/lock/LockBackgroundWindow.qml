@@ -85,6 +85,13 @@ Window {
         onLoaded: {
             item.screen = root.targetScreen;
         }
+
+        layer.enabled: Config.lock.blurWallpaper
+        layer.effect: MultiEffect {
+            blurEnabled: true
+            blurMax: 64
+            blur: 1.0
+        }
     }
 
     Item {

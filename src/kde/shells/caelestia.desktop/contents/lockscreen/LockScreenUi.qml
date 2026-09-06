@@ -36,6 +36,25 @@ Item {
     // otherwise fall back to the system locale — same logic as serviceconfig.hpp default.
     property bool use12h: Qt.locale().timeFormat(Locale.ShortFormat).toLowerCase().indexOf("a") !== -1
     property bool isCaelestiaMode: false
+    property bool recolourLogo: true
+    property bool hideNotifs: false
+    property bool enableFprint: true
+    property int maxFprintTries: 3
+    property int fprintTries: 0
+    property int profilePicShape: 13
+    property bool rotateProfilePic: false
+    property bool syncWallpaper: true
+    property var sessionIcons: ({})
+    property bool showSleep: true
+    property bool showHibernate: false
+    property bool showSwitchUser: true
+    property bool showLogout: true
+    property bool showReboot: false
+    property bool showShutdown: false
+    property bool blurWallpaper: false
+
+    readonly property bool hasFingerprint: enableFprint && (fprintTries < maxFprintTries) && Boolean(authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint)
+    readonly property bool fprintDisabledDueToTries: enableFprint && (fprintTries >= maxFprintTries) && Boolean(authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint)
     readonly property real bgRadius: 42 * (lockHeight / 1080)
     readonly property real bgMargin: 16 * (lockHeight / 1080)
     readonly property real cardRadius: bgRadius - bgMargin
@@ -131,6 +150,38 @@ Item {
                     lockScreenUi.isCaelestiaMode = svc.caelestiaMode;
                 else if (cfg.general && typeof cfg.general.caelestiaMode === "boolean")
                     lockScreenUi.isCaelestiaMode = cfg.general.caelestiaMode;
+
+                var lk = cfg.lock || {};
+                if (typeof lk.recolourLogo === "boolean")
+                    lockScreenUi.recolourLogo = lk.recolourLogo;
+                if (typeof lk.hideNotifs === "boolean")
+                    lockScreenUi.hideNotifs = lk.hideNotifs;
+                if (typeof lk.enableFprint === "boolean")
+                    lockScreenUi.enableFprint = lk.enableFprint;
+                if (typeof lk.maxFprintTries === "number")
+                    lockScreenUi.maxFprintTries = lk.maxFprintTries;
+                if (typeof lk.profilePicShape === "number")
+                    lockScreenUi.profilePicShape = lk.profilePicShape;
+                if (typeof lk.rotateProfilePic === "boolean")
+                    lockScreenUi.rotateProfilePic = lk.rotateProfilePic;
+                if (typeof lk.syncWallpaper === "boolean")
+                    lockScreenUi.syncWallpaper = lk.syncWallpaper;
+                if (typeof lk.blurWallpaper === "boolean")
+                    lockScreenUi.blurWallpaper = lk.blurWallpaper;
+                if (cfg.session && cfg.session.icons)
+                    lockScreenUi.sessionIcons = cfg.session.icons;
+                if (typeof lk.showSleep === "boolean")
+                    lockScreenUi.showSleep = lk.showSleep;
+                if (typeof lk.showHibernate === "boolean")
+                    lockScreenUi.showHibernate = lk.showHibernate;
+                if (typeof lk.showSwitchUser === "boolean")
+                    lockScreenUi.showSwitchUser = lk.showSwitchUser;
+                if (typeof lk.showLogout === "boolean")
+                    lockScreenUi.showLogout = lk.showLogout;
+                if (typeof lk.showReboot === "boolean")
+                    lockScreenUi.showReboot = lk.showReboot;
+                if (typeof lk.showShutdown === "boolean")
+                    lockScreenUi.showShutdown = lk.showShutdown;
             } catch(e) {}
         }
     }
@@ -320,7 +371,18 @@ Item {
     Connections {
         target: authenticator
         function onFailed(kind) {
-            if (kind !== 0) return;
+            if (kind !== 0) {
+                if (kind & ScreenLocker.Authenticator.Fingerprint) {
+                    lockScreenUi.fprintTries++;
+                    if (lockScreenUi.fprintTries >= lockScreenUi.maxFprintTries) {
+                        lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
+                            "@info:status", "Maximum fingerprint attempts reached. Please use password.");
+                        msgAppearAnim.start();
+                        notificationRemoveTimer.restart();
+                    }
+                }
+                return;
+            }
             lockScreenUi.isAuthenticating = false;
             lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
                 "@info:status", "Unlocking failed");
@@ -329,7 +391,23 @@ Item {
             if (passwordPill) passwordPill.shake();
             msgAppearAnim.start();
         }
-        function onSucceeded() { Qt.quit(); }
+        function onNoninteractiveError(kind, auth) {
+            if (kind & ScreenLocker.Authenticator.Fingerprint) {
+                lockScreenUi.fprintTries++;
+                if (lockScreenUi.fprintTries >= lockScreenUi.maxFprintTries) {
+                    lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
+                        "@info:status", "Maximum fingerprint attempts reached. Please use password.");
+                } else if (auth && auth.errorMessage) {
+                    lockScreenUi.authMessage = auth.errorMessage;
+                }
+                msgAppearAnim.start();
+                notificationRemoveTimer.restart();
+            }
+        }
+        function onSucceeded() {
+            lockScreenUi.fprintTries = 0;
+            Qt.quit();
+        }
         function onInfoMessageChanged() {
             lockScreenUi.authMessage = authenticator.infoMessage;
             if (lockScreenUi.authMessage) msgAppearAnim.start();
@@ -390,6 +468,20 @@ Item {
         source: wallpaper
         radius: 64
         visible: false
+    }
+
+    Item {
+        id: fullWallpaperBlurOverlay
+        anchors.fill: parent
+        visible: lockScreenUi.blurWallpaper
+        opacity: visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 250 } }
+
+        ShaderEffectSource {
+            anchors.fill: parent
+            sourceItem: wallpaperBlur
+            live: true
+        }
     }
 
     FocusScope {
@@ -493,6 +585,7 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         fetchInfo: fetchLoader.fetchInfo
                         clTerms: lockScreenUi.clTerms
+                        recolourLogo: lockScreenUi.recolourLogo
                         clSurface: lockScreenUi.clSurface
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
@@ -545,9 +638,12 @@ Item {
                         implicitWidth: lockScreenUi.centerWidth * 0.7
                         implicitHeight: implicitWidth
                         centerScale: lockScreenUi.centerScale
+                        profileShape: lockScreenUi.profilePicShape
+                        rotateShape: lockScreenUi.rotateProfilePic
                         userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
                         userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                     }
 
                     GreetingPill {
@@ -567,7 +663,9 @@ Item {
                         centerWidth: lockScreenUi.centerWidth
                         isAuthenticating: lockScreenUi.isAuthenticating
                         graceLocked: Boolean(authenticator.graceLocked)
-                        hasFingerprint: Boolean(authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint)
+                        hasFingerprint: lockScreenUi.hasFingerprint
+                        fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
+                        clError: lockScreenUi.clError
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceFg: lockScreenUi.clSurfaceFg
@@ -584,6 +682,14 @@ Item {
                         isAuthenticating: lockScreenUi.isAuthenticating
                         clPrimary: lockScreenUi.clPrimary
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        sessionManagement: sessionManagement
+                        customIcons: lockScreenUi.sessionIcons
+                        showSleep: lockScreenUi.showSleep
+                        showHibernate: lockScreenUi.showHibernate
+                        showSwitchUser: lockScreenUi.showSwitchUser
+                        showLogout: lockScreenUi.showLogout
+                        showReboot: lockScreenUi.showReboot
+                        showShutdown: lockScreenUi.showShutdown
                     }
 
                     // Status Messages (Caps Lock, Errors, Fingerprint)
@@ -624,7 +730,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.top: (errorText.visible ? errorText : (capsText.visible ? capsText : parent)).bottom
                             anchors.topMargin: 6 * lockScreenUi.centerScale
-                            visible: authenticator.authenticatorTypes & ScreenLocker.Authenticator.Fingerprint
+                            visible: lockScreenUi.hasFingerprint
                             text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
                             font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
                             color: lockScreenUi.clSurfaceVariantFg
@@ -674,6 +780,7 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
                         isCaelestiaMode: lockScreenUi.isCaelestiaMode
+                        hideNotifs: lockScreenUi.hideNotifs
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
@@ -741,32 +848,16 @@ Item {
                 Layout.fillWidth: true
                 spacing: 24 * lockScreenUi.centerScale
 
-                Rectangle {
+                ProfileAvatar {
                     Layout.preferredWidth: lockScreenUi.centerWidth * 0.4
                     Layout.preferredHeight: Layout.preferredWidth
-                    radius: width / 2
-                    color: lockScreenUi.clSurfaceContainerHighest
-
-                    Image {
-                        id: portraitProfileImage
-                        anchors.fill: parent
-                        source: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
-                        fillMode: Image.PreserveAspectCrop
-                        visible: status === Image.Ready
-                        layer.enabled: true
-                        layer.effect: OpacityMask {
-                            maskSource: Rectangle { width: portraitProfileImage.width; height: portraitProfileImage.height; radius: width / 2 }
-                        }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "person"
-                        font.family: LockScreenConfig.fontIcon
-                        font.pixelSize: parent.width * 0.45
-                        color: lockScreenUi.clSurfaceVariantFg
-                        visible: portraitProfileImage.status !== Image.Ready
-                    }
+                    centerScale: lockScreenUi.centerScale
+                    profileShape: lockScreenUi.profilePicShape
+                    rotateShape: lockScreenUi.rotateProfilePic
+                    userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
+                    userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
+                    clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                    clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
                 }
 
                 ClockWidget {
@@ -879,6 +970,14 @@ Item {
                         isAuthenticating: lockScreenUi.isAuthenticating
                         clPrimary: lockScreenUi.clPrimary
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        sessionManagement: sessionManagement
+                        customIcons: lockScreenUi.sessionIcons
+                        showSleep: lockScreenUi.showSleep
+                        showHibernate: lockScreenUi.showHibernate
+                        showSwitchUser: lockScreenUi.showSwitchUser
+                        showLogout: lockScreenUi.showLogout
+                        showReboot: lockScreenUi.showReboot
+                        showShutdown: lockScreenUi.showShutdown
                     }
                 }
             }

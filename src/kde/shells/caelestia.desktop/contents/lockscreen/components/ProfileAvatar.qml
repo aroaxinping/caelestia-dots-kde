@@ -27,12 +27,66 @@ Item {
         ? root.userImage.toString()
         : ""
 
-    MaterialShape {
-        id: shape
+    property bool rotateShape: false
+
+    readonly property bool isRandomShape: root.profileShape === -1
+
+    readonly property var shapePool: [
+        MaterialShape.Circle,
+        MaterialShape.Square,
+        MaterialShape.Pill,
+        MaterialShape.Diamond,
+        MaterialShape.ClamShell,
+        MaterialShape.Pentagon,
+        MaterialShape.Gem,
+        MaterialShape.Cookie4Sided,
+        MaterialShape.Cookie6Sided,
+        MaterialShape.Cookie7Sided,
+        MaterialShape.Cookie9Sided,
+        MaterialShape.Cookie12Sided,
+        MaterialShape.Sunny,
+        MaterialShape.SoftBurst
+    ]
+
+    property int currentShapeIndex: Math.floor(Math.random() * shapePool.length)
+    readonly property int activeShape: isRandomShape ? shapePool[currentShapeIndex] : root.profileShape
+
+    Timer {
+        id: shapeAnimTimer
+        interval: 3500
+        repeat: true
+        running: root.isRandomShape && root.visible
+        onTriggered: {
+            var nextIdx;
+            do {
+                nextIdx = Math.floor(Math.random() * root.shapePool.length);
+            } while (nextIdx === root.currentShapeIndex && root.shapePool.length > 1);
+            root.currentShapeIndex = nextIdx;
+        }
+    }
+
+    Item {
+        id: shapeWrapper
         anchors.centerIn: parent
-        implicitSize: root.width
-        shape: root.profileShape
-        color: root.clSurfaceContainerHighest
+        width: root.width
+        height: root.width
+
+        MaterialShape {
+            id: shape
+            anchors.centerIn: parent
+            implicitSize: root.width
+            animationDuration: root.isRandomShape ? 800 : 350
+            shape: root.activeShape
+            color: root.clSurfaceContainerHighest
+
+            NumberAnimation on rotation {
+                from: 0
+                to: 360
+                duration: 12000
+                loops: Animation.Infinite
+                running: root.rotateShape && root.visible
+            }
+        }
     }
 
     Text {
@@ -46,13 +100,13 @@ Item {
 
     Image {
         id: profileImage
-        anchors.fill: shape
+        anchors.fill: shapeWrapper
         source: root.faceSource ? root.faceSource : root.fallbackSource
         fillMode: Image.PreserveAspectCrop
         visible: status === Image.Ready
         layer.enabled: true
         layer.effect: OpacityMask {
-            maskSource: shape
+            maskSource: shapeWrapper
         }
 
         onStatusChanged: {

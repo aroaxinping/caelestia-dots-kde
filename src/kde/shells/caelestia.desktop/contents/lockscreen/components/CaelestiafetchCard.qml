@@ -22,6 +22,7 @@ Rectangle {
     property color clSurfaceFg: "#e5e1e7"
     property color clSurfaceVariantFg: "#c8c5d1"
     property color clPrimary: "#c2c1ff"
+    property bool recolourLogo: true
 
     property real cardRadius: 26
     radius: cardRadius * centerScale
@@ -145,9 +146,9 @@ Rectangle {
                 MultiEffect {
                     anchors.fill: distroIcon
                     source: distroIcon
-                    colorization: 1.0
+                    colorization: root.recolourLogo ? 1.0 : 0.0
                     colorizationColor: root.clPrimary
-                    brightness: 0.5
+                    brightness: root.recolourLogo ? 0.5 : 0.0
                 }
             }
 
