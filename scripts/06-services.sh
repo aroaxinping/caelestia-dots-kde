@@ -130,8 +130,14 @@ WantedBy=graphical-session.target
 UNIT
 systemctl --user daemon-reload
 systemctl --user enable ydotoold.service 2>/dev/null || true
-systemctl --user start ydotoold.service 2>/dev/null || \
-    info "ydotoold will start on next login."
+# The 'input' group only applies to new logins; starting the daemon in the
+# same session that just got the group would silently fail to open /dev/uinput.
+if id -nG | grep -q '\binput\b'; then
+    systemctl --user start ydotoold.service 2>/dev/null || \
+        info "ydotoold will start on next login."
+else
+    info "ydotoold starts on next login (input group takes effect then)."
+fi
 ok "ydotoold service configured."
 
 ok "Services configured."
