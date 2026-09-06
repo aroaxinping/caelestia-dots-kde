@@ -63,8 +63,8 @@ FloatingWindow {
         }
     }
 
-    implicitWidth: 920
-    implicitHeight: 640
+    implicitWidth: 680 // Not to be changed
+    implicitHeight: 480 // Text and image proportions were set according to these numbers
     minimumSize.width: 680
     minimumSize.height: 480
 
