@@ -16,6 +16,7 @@
 #include <sstream>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <thread>
 #include <unordered_map>
 #include <unistd.h>
@@ -53,6 +54,29 @@ bool write_file_excl(const string& path, const string& content, int mode) {
     ssize_t written = write(fd, content.c_str(), content.size());
     close(fd);
     return written == static_cast<ssize_t>(content.size());
+}
+
+bool is_systemd_inhibit(pid_t pid) {
+    ifstream cmdline("/proc/" + to_string(pid) + "/cmdline", ios::binary);
+    string command((istreambuf_iterator<char>(cmdline)), istreambuf_iterator<char>());
+    return command.find("systemd-inhibit") != string::npos;
+}
+
+void release_kde_inhibit(const string& cookie_file) {
+    ifstream cookie(cookie_file);
+    string value;
+    getline(cookie, value);
+    if (value.empty())
+        return;
+    pid_t child = fork();
+    if (child == 0) {
+        execlp("qdbus6", "qdbus6", "org.freedesktop.ScreenSaver",
+               "/ScreenSaver", "org.freedesktop.ScreenSaver.UnInhibit",
+               value.c_str(), static_cast<char*>(nullptr));
+        _exit(127);
+    }
+    if (child > 0)
+        waitpid(child, nullptr, 0);
 }
 
 // Sets up the sudo askpass environment after a successful password
@@ -111,14 +135,42 @@ bool setup_sudo_environment(const string& pw) {
     // Reap an inhibitor left by a killed earlier run before starting a fresh
     // one; the shell EXIT trap can't run on SIGKILL or a hard crash. Only kill
     // a process whose command line identifies it as our systemd inhibitor.
-    system(("if [ -f \"" + pid_file + "\" ]; then p=$(cat \"" + pid_file +
-            "\"); if [ -r \"/proc/$p/cmdline\" ] && tr '\\0' ' ' < \"/proc/$p/cmdline\" | grep -q systemd-inhibit; then kill -9 \"$p\" 2>/dev/null; fi; fi").c_str());
-    system(("if [ -f \"" + cookie_file + "\" ]; then qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit \"$(cat \"" +
-            cookie_file + "\")\" 2>/dev/null; fi").c_str());
+    ifstream old_pid(pid_file);
+    pid_t pid = 0;
+    old_pid >> pid;
+    if (pid > 0 && is_systemd_inhibit(pid))
+        kill(pid, SIGKILL);
+    release_kde_inhibit(cookie_file);
 
     // Start background keep-awake for display (sleep inhibitor)
-    system(("systemd-inhibit --what=idle:sleep --who=\"Caelestia Installer\" --why=\"Installation in progress\" bash -c 'while :; do sleep 600; done' >/dev/null 2>&1 & echo $! > \"" + pid_file + "\"").c_str());
-    system(("qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.Inhibit \"Caelestia Installer\" \"Installation in progress\" > \"" + cookie_file + "\" 2>/dev/null").c_str());
+    pid = fork();
+    if (pid == 0) {
+        execlp("systemd-inhibit", "systemd-inhibit", "--what=idle:sleep",
+               "--who=Caelestia Installer", "--why=Installation in progress",
+               "bash", "-c", "while :; do sleep 600; done",
+               static_cast<char*>(nullptr));
+        _exit(127);
+    }
+    if (pid > 0) {
+        ofstream pid_out(pid_file);
+        pid_out << pid << '\n';
+    }
+
+    int cookie_fd = open(cookie_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    pid = fork();
+    if (pid == 0) {
+        if (cookie_fd >= 0)
+            dup2(cookie_fd, STDOUT_FILENO);
+        execlp("qdbus6", "qdbus6", "org.freedesktop.ScreenSaver",
+               "/ScreenSaver", "org.freedesktop.ScreenSaver.Inhibit",
+               "Caelestia Installer", "Installation in progress",
+               static_cast<char*>(nullptr));
+        _exit(127);
+    }
+    if (cookie_fd >= 0)
+        close(cookie_fd);
+    if (pid > 0)
+        waitpid(pid, nullptr, 0);
     return true;
 }
 
