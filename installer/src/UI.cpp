@@ -41,20 +41,40 @@ bool write_password_file_secure(const string& path, const string& password) {
     return written == static_cast<ssize_t>(data.size());
 }
 
+// Writes @p content to @p path with O_EXCL, so a file (or symlink) already at
+// that path is never followed or overwritten.
+bool write_file_excl(const string& path, const string& content, int mode) {
+    int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode);
+    if (fd == -1) {
+        return false;
+    }
+    ssize_t written = write(fd, content.c_str(), content.size());
+    close(fd);
+    return written == static_cast<ssize_t>(content.size());
+}
+
 // Sets up the sudo askpass environment after a successful password
 // verification. Creates the password file, askpass helper, sudo wrapper,
 // screen inhibitor, and exports SUDO_PASS.
 void setup_sudo_environment(const string& pw) {
-    system("mkdir -p /tmp/caelestia_bin");
+    // Per-run, user-owned temp dir instead of a fixed, predictable /tmp path.
+    // mkdtemp creates it 0700, and the O_EXCL writes below can't follow a
+    // symlink someone else planted at a known name.
+    char tmpl[] = "/tmp/caelestia-bin.XXXXXX";
+    char* dir = mkdtemp(tmpl);
+    if (!dir) {
+        return;
+    }
+    g_sudo_bin_dir = dir;
 
-    // Write password with secure permissions from the start (no TOCTOU window)
-    write_password_file_secure("/tmp/caelestia_pass.txt", pw);
+    write_password_file_secure(g_sudo_bin_dir + "/pass.txt", pw);
 
-    // Askpass script
-    system("echo '#!/bin/bash\ncat /tmp/caelestia_pass.txt' > /tmp/caelestia_askpass.sh && chmod 700 /tmp/caelestia_askpass.sh");
+    string askpass = "#!/bin/bash\ncat " + g_sudo_bin_dir + "/pass.txt\n";
+    write_file_excl(g_sudo_bin_dir + "/askpass.sh", askpass, 0700);
 
-    // Sudo wrapper to force -A
-    system("echo '#!/bin/bash\nexport SUDO_ASKPASS=/tmp/caelestia_askpass.sh\nexec /usr/bin/sudo -A \"$@\"' > /tmp/caelestia_bin/sudo && chmod 700 /tmp/caelestia_bin/sudo");
+    string wrapper = "#!/bin/bash\nexport SUDO_ASKPASS=" + g_sudo_bin_dir +
+                     "/askpass.sh\nexec /usr/bin/sudo -A \"$@\"\n";
+    write_file_excl(g_sudo_bin_dir + "/sudo", wrapper, 0700);
 
     // Also export SUDO_PASS for some scripts (like 09-system-tweaks.sh) that might rely on it
     setenv("SUDO_PASS", pw.c_str(), 1);

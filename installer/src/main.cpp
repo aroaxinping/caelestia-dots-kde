@@ -34,7 +34,9 @@ void check_signals() {
     if (g_sigint_received || g_sigterm_received) {
         g_quit = true;
         Term::restore();
-        system("rm -rf /tmp/caelestia_pass.txt /tmp/caelestia_askpass.sh /tmp/caelestia_bin");
+        if (!g_sudo_bin_dir.empty()) {
+            system(("rm -rf \"" + g_sudo_bin_dir + "\"").c_str());
+        }
         exit(130);
     }
 }
@@ -288,7 +290,9 @@ int main(int argc, char** argv) {
     }
     
     // Secure cleanup of sudo credentials
-    system("rm -rf /tmp/caelestia_pass.txt /tmp/caelestia_askpass.sh /tmp/caelestia_bin");
+    if (!g_sudo_bin_dir.empty()) {
+        system(("rm -rf \"" + g_sudo_bin_dir + "\"").c_str());
+    }
 
     if (g_logout) {
         cout << "\nLogging out...\n";

@@ -449,7 +449,9 @@ void execute() {
 
   // Inject our sudo wrapper into the PATH so step scripts never prompt.
   string current_path = getenv("PATH") ? getenv("PATH") : "/usr/bin";
-  setenv("PATH", ("/tmp/caelestia_bin:" + current_path).c_str(), 1);
+  if (!g_sudo_bin_dir.empty()) {
+    setenv("PATH", (g_sudo_bin_dir + ":" + current_path).c_str(), 1);
+  }
 
   setenv("CONFIRM_ARG", "--noconfirm", 1);
 
@@ -525,8 +527,9 @@ void execute() {
         int st2 = 0;
         waitpid(child, &st2, 0);
         Term::restore();
-        system("rm -rf /tmp/caelestia_pass.txt /tmp/caelestia_askpass.sh "
-               "/tmp/caelestia_bin");
+        if (!g_sudo_bin_dir.empty()) {
+          system(("rm -rf \"" + g_sudo_bin_dir + "\"").c_str());
+        }
         exit(130);
       }
 
