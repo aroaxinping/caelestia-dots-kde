@@ -16,6 +16,13 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/log.sh"
 
 BUNDLE_DIR="${BUNDLE_DIR:?BUNDLE_DIR not set}"
 
+# True when a Darkly KWin decoration is actually installed and loadable.
+darkly_decoration_installed() {
+    [[ -d /usr/share/kwin/decorations/org.kde.darkly ]] ||
+    [[ -d /usr/local/share/kwin/decorations/org.kde.darkly ]] ||
+    [[ -d "${XDG_DATA_HOME:-$HOME/.local/share}/kwin/decorations/org.kde.darkly" ]]
+}
+
 echo
 echo ""
 info "Applying KDE settings"
@@ -39,14 +46,21 @@ if [[ "${APPLY_DARKLY:-true}" == "true" ]]; then
     kwriteconfig6 --file kdeglobals --group "KDE" --key "widgetStyle" "darkly" 2>/dev/null || true
     kwriteconfig6 --file kdeglobals --group "General" --key "ColorScheme" "Darkly" 2>/dev/null || true
 
-    #  Darkly: Window decoration 
+    #  Darkly: Window decoration
     info "Applying Darkly window decoration..."
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "library" "org.kde.darkly" 2>/dev/null || \
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "library" "org.kde.breeze" 2>/dev/null || true
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "theme" "@darkly" 2>/dev/null || true
+    if darkly_decoration_installed; then
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "library" "org.kde.darkly" 2>/dev/null || true
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "theme" "@darkly" 2>/dev/null || true
+    else
+        # kwriteconfig6 can't tell whether a decoration is loadable, so check
+        # ourselves and fall back to Breeze when Darkly isn't installed.
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "library" "org.kde.breeze" 2>/dev/null || true
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "theme" "@breeze" 2>/dev/null || true
+    fi
 
 else
     skip "Skipping Darkly theme"
