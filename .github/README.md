@@ -125,14 +125,14 @@ For detailed debug logs, enable Debug Mode in Nexus -> About -> Advanced, then r
 
 | Contributor | PRs |
 | --- | ---: |
-| [WinTone01](https://github.com/WinTone01) | 46 |
+| [WinTone01](https://github.com/WinTone01) | 60 |
+| [aroaxinping](https://github.com/aroaxinping) | 5 |
 | [Vinax89](https://github.com/Vinax89) | 5 |
+| [jialfaro](https://github.com/jialfaro) | 2 |
+| [SalihYzts](https://github.com/SalihYzts) | 2 |
 | [0x0nYx](https://github.com/0x0nYx) | 1 |
 | [tomjod](https://github.com/tomjod) | 1 |
 | [Peace-W](https://github.com/Peace-W) | 1 |
-| [jedrikjames](https://github.com/jedrikjames) | 1 |
-| [Klivan49](https://github.com/Klivan49) | 1 |
-| [gitxpresso](https://github.com/gitxpresso) | 1 |
 
 </td>
 <td width="50%">
@@ -141,14 +141,14 @@ For detailed debug logs, enable Debug Mode in Nexus -> About -> Advanced, then r
 
 | Contributor | Issues |
 | --- | ---: |
-| [0x0nYx](https://github.com/0x0nYx) | 106 |
+| [0x0nYx](https://github.com/0x0nYx) | 147 |
 | [Kyedae](https://github.com/Kyedae) | 17 |
 | [bubbleo0](https://github.com/bubbleo0) | 12 |
 | [RaceConditionWinner](https://github.com/RaceConditionWinner) | 10 |
 | [KhanhNguyen1603](https://github.com/KhanhNguyen1603) | 9 |
+| [francisco-tato](https://github.com/francisco-tato) | 7 |
 | [arceus4526](https://github.com/arceus4526) | 6 |
 | [RealNath](https://github.com/RealNath) | 6 |
-| [francisco-tato](https://github.com/francisco-tato) | 5 |
 
 </td>
 </tr></table>
