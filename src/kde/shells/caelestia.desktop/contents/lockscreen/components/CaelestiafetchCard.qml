@@ -27,8 +27,8 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius
     color: clSurfaceContainer
-    // Shrinks-to-fit: titlebar (36) + logo (180) + dots (28) + 2×spacing (12) + 2×margin (18)
-    // Matches Quickshell's Fetch.qml content-driven height
+    clip: true
+
     implicitHeight: (36 + 180 + 28 + 2 * 12 + 2 * 18) * centerScale
 
     // Resolve SVG logo path from python3 provider; falls back to a generic icon
@@ -37,8 +37,12 @@ Rectangle {
         return "";
     }
 
+    // Rearrange thresholds:
+    // showLargeLogo: when width allows both large logo and text without elision
+    readonly property bool showLargeLogo: root.width >= (280 * root.centerScale)
+
     // Single monospace string per row keeps all colons on one vertical line.
-    // Fallback values are kept generic — this is a public repo.
+    // Adapts line count based on available height.
     readonly property var fetchLines: {
         var osStr = "";
         var wmStr = "KDE";
@@ -67,40 +71,52 @@ Rectangle {
             }
         }
 
-        return [
-            "OS  : " + osStr,
-            "WM  : " + wmStr,
-            "USER: " + userStr,
-            "UP  : " + upStr
-        ];
+        var lines = [];
+        if (root.height >= 180 * root.centerScale) {
+            lines.push("OS  : " + osStr);
+            lines.push("WM  : " + wmStr);
+            lines.push("USER: " + userStr);
+            lines.push("UP  : " + upStr);
+        } else if (root.height >= 140 * root.centerScale) {
+            lines.push("OS  : " + osStr);
+            lines.push("USER: " + userStr);
+            lines.push("UP  : " + upStr);
+        } else {
+            lines.push("OS  : " + osStr);
+            lines.push("UP  : " + upStr);
+        }
+        return lines;
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 18 * root.centerScale
-        spacing: 12 * root.centerScale
+    // Large body logo size calculated from card bounds
+    readonly property real bodyLogoSize: Math.round(Math.min(root.height * 0.48, root.width * 0.30))
 
-        // Titlebar row: "> " pill + "caelestiafetch.sh"
+    ColumnLayout {
+        id: fetchLayout
+        anchors.fill: parent
+        anchors.margins: Math.max(10, 14 * root.centerScale)
+        spacing: Math.max(4, 8 * root.centerScale)
+
+        // Titlebar row: "> " pill + "caelestiafetch.sh" (+ small logo when large logo is hidden)
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10 * root.centerScale
+            Layout.fillHeight: false
+            spacing: 8 * root.centerScale
 
             Rectangle {
-                Layout.preferredWidth: 34 * root.centerScale
-                Layout.preferredHeight: 34 * root.centerScale
-                implicitWidth: Layout.preferredWidth
-                implicitHeight: Layout.preferredHeight
-                radius: 10 * root.centerScale
+                implicitWidth: Math.max(22, 28 * root.centerScale)
+                implicitHeight: implicitWidth
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                radius: Math.max(6, 8 * root.centerScale)
                 color: root.clPrimary
 
                 Text {
                     anchors.centerIn: parent
                     text: ">"
-                    // Font sizes here are NOT multiplied by centerScale — matches the
-                    // convention used by all other lockscreen cards (MediaCard, NotifDock, etc.)
                     font {
-                        pixelSize: LockScreenConfig.sizeSmall
-                        family: LockScreenConfig.fontMono
+                        pixelSize: LockScreenConfig.sizeNormal
+                        family: LockScreenConfig.fontMetrics
                         weight: Font.Bold
                     }
                     color: root.clSurface
@@ -110,32 +126,65 @@ Rectangle {
             Text {
                 text: "caelestiafetch.sh"
                 font {
-                    pixelSize: LockScreenConfig.sizeSmall
-                    family: LockScreenConfig.fontMono
+                    pixelSize: LockScreenConfig.sizeNormal
+                    family: LockScreenConfig.fontMetrics
                 }
                 color: root.clSurfaceFg
                 Layout.fillWidth: true
+                elide: Text.ElideRight
+            }
+
+            // Compact logo in titlebar when width is too narrow for body logo
+            Item {
+                id: titlebarLogo
+                visible: !root.showLargeLogo && root.logoPath.length > 0
+                implicitWidth: Math.max(22, 26 * root.centerScale)
+                implicitHeight: implicitWidth
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                Layout.alignment: Qt.AlignVCenter
+
+                Image {
+                    id: titlebarDistroIcon
+                    anchors.fill: parent
+                    source: root.logoPath
+                    sourceSize.width: 128
+                    sourceSize.height: 128
+                    fillMode: Image.PreserveAspectFit
+                    visible: false
+                }
+
+                MultiEffect {
+                    anchors.fill: titlebarDistroIcon
+                    source: titlebarDistroIcon
+                    colorization: root.recolourLogo ? 1.0 : 0.0
+                    colorizationColor: root.clPrimary
+                    brightness: root.recolourLogo ? 0.5 : 0.0
+                }
             }
         }
 
-        // Body: large vector logo (left) + 4 monospace info lines (right)
+        // Body: vector logo (left) + monospace info lines (right)
         RowLayout {
-            Layout.fillWidth: true
+            id: bodyRow
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Layout.fillHeight: true
-            spacing: 20 * root.centerScale
+            spacing: root.showLargeLogo ? Math.max(10, Math.round(16 * root.centerScale)) : 0
 
+            // Large logo in body area
             Item {
-                Layout.preferredWidth: 180 * root.centerScale
-                Layout.preferredHeight: 180 * root.centerScale
-                implicitWidth: Layout.preferredWidth
-                implicitHeight: Layout.preferredHeight
+                id: logoContainer
+                visible: root.showLargeLogo && root.logoPath.length > 0
+                implicitWidth: visible ? root.bodyLogoSize : 0
+                implicitHeight: visible ? root.bodyLogoSize : 0
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
                 Layout.alignment: Qt.AlignVCenter
 
-                // Use a high-res Image for crisp SVG rendering, falling back
-                // to nothing (transparent) when no logo path is available.
                 Image {
                     id: distroIcon
                     anchors.fill: parent
+                    anchors.margins: 2 * root.centerScale
                     source: root.logoPath
                     sourceSize.width: 512
                     sourceSize.height: 512
@@ -153,9 +202,9 @@ Rectangle {
             }
 
             ColumnLayout {
-                Layout.fillWidth: true
+                id: textColumn
                 Layout.alignment: Qt.AlignVCenter
-                spacing: 7
+                spacing: Math.max(2, 5 * root.centerScale)
 
                 Repeater {
                     model: root.fetchLines
@@ -164,13 +213,13 @@ Rectangle {
                         required property string modelData
                         text: modelData
                         font {
-                            family: LockScreenConfig.fontMono
-                            // Fixed px — same convention as MediaCard, NotifDock, GreetingPill
-                            pixelSize: LockScreenConfig.sizeSmall
+                            family: LockScreenConfig.fontMetrics
+                            pixelSize: (root.width > (340 * root.centerScale) && root.height > (190 * root.centerScale))
+                                       ? LockScreenConfig.sizeNormal
+                                       : LockScreenConfig.sizeVerySmall
                         }
                         color: root.clSurfaceFg
                         elide: Text.ElideRight
-                        Layout.fillWidth: true
                     }
                 }
             }
@@ -178,19 +227,27 @@ Rectangle {
 
         // Terminal dot palette — uses clTerms from scheme.json; empty while colors load
         RowLayout {
+            id: coloursRow
+            visible: (root.centerScale >= 0.85) && (root.height >= 170 * root.centerScale)
             Layout.alignment: Qt.AlignHCenter
-            spacing: 16 * root.centerScale
+            Layout.fillHeight: false
+            Layout.preferredHeight: visible ? -1 : 0
+            Layout.topMargin: visible ? (2 * root.centerScale) : 0
+            spacing: Math.max(4, 10 * root.centerScale)
 
             Repeater {
-                model: root.clTerms && root.clTerms.length ? root.clTerms.slice(0, 7) : []
+                model: root.clTerms && root.clTerms.length
+                       ? root.clTerms.slice(0, Math.min(7, Math.max(0, Math.floor((root.width - 32 * root.centerScale) / (20 * root.centerScale)))))
+                       : []
 
                 Rectangle {
                     required property string modelData
-                    Layout.preferredWidth: 28 * root.centerScale
-                    Layout.preferredHeight: 28 * root.centerScale
-                    implicitWidth: Layout.preferredWidth
-                    implicitHeight: Layout.preferredHeight
-                    radius: 14 * root.centerScale
+                    readonly property real dotSize: Math.max(10, Math.min(25 * root.centerScale, (root.width - 64 * root.centerScale) / 9))
+                    implicitWidth: dotSize
+                    implicitHeight: dotSize
+                    Layout.preferredWidth: dotSize
+                    Layout.preferredHeight: dotSize
+                    radius: dotSize / 2
                     color: modelData
                 }
             }

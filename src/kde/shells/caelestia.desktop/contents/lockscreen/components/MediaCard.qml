@@ -28,6 +28,9 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius
     color: clSurfaceContainer
+    clip: true
+
+    implicitHeight: mediaContent.implicitHeight + 28 * root.centerScale
 
     // Album art background — only shown when media is playing
     Item {
@@ -64,9 +67,10 @@ Rectangle {
     // Single layout always present — mirrors Quickshell Media.qml structure.
     // When no media is playing the content dims and shows placeholder strings.
     ColumnLayout {
+        id: mediaContent
         anchors.centerIn: parent
         width: parent.width * 0.9
-        spacing: 8
+        spacing: 6 * root.centerScale
         // Dim the whole layout while no media is active (matches Quickshell disabled state)
         opacity: root.hasMedia ? 1.0 : 0.55
         Behavior on opacity { NumberAnimation { duration: 300 } }
@@ -93,14 +97,16 @@ Rectangle {
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 16
-            Layout.topMargin: 12
+            spacing: 14 * root.centerScale
+            Layout.topMargin: 8 * root.centerScale
 
             // Previous — Quickshell: disabled when !canGoPrevious
             Rectangle {
-                width: 38
-                height: 38
-                radius: 19
+                implicitWidth: 36 * root.centerScale
+                implicitHeight: 36 * root.centerScale
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                radius: 18 * root.centerScale
                 color: Qt.rgba(255, 255, 255, root.hasMedia ? 0.1 : 0.06)
 
                 Text {
@@ -120,9 +126,11 @@ Rectangle {
 
             // Play/Pause — pill shape, primary colour when active
             Rectangle {
-                width: 66
-                height: 42
-                radius: 21
+                implicitWidth: 60 * root.centerScale
+                implicitHeight: 38 * root.centerScale
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                radius: 19 * root.centerScale
                 color: root.hasMedia ? root.clPrimary : Qt.rgba(255, 255, 255, 0.08)
 
                 Text {
@@ -142,9 +150,11 @@ Rectangle {
 
             // Next — Quickshell: disabled when !canGoNext
             Rectangle {
-                width: 38
-                height: 38
-                radius: 19
+                implicitWidth: 36 * root.centerScale
+                implicitHeight: 36 * root.centerScale
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                radius: 18 * root.centerScale
                 color: Qt.rgba(255, 255, 255, root.hasMedia ? 0.1 : 0.06)
 
                 Text {

@@ -32,7 +32,7 @@ ColumnLayout {
         return metrics.tightBoundingRect.y - metrics.boundingRect.y;
     }
 
-    spacing: 20 * centerScale
+    spacing: Math.max(6, Math.round(10 * root.centerScale))
 
     Item {
         id: clockDisplay
@@ -55,9 +55,9 @@ ColumnLayout {
             color: root.clPrimary
             font {
                 family: root.clockFontFamily
-                pointSize: Math.max(1, Math.round(90 * root.centerScale))
+                pointSize: Math.max(1, Math.round(72 * root.centerScale))
                 weight: Font.Normal
-                variableAxes: ({ "wdth": 30 })
+                variableAxes: ({ "wdth": 100 })
             }
 
             TextMetrics {
@@ -78,9 +78,9 @@ ColumnLayout {
             color: root.clSecondary
             font {
                 family: root.clockFontFamily
-                pointSize: Math.max(1, Math.round((root.use12h ? 49 : 90) * root.centerScale))
+                pointSize: Math.max(1, Math.round((root.use12h ? 40 : 72) * root.centerScale))
                 weight: Font.Normal
-                variableAxes: ({ "wdth": 30 })
+                variableAxes: ({ "wdth": 100 })
             }
 
             TextMetrics {
@@ -97,10 +97,10 @@ ColumnLayout {
             y: hourMetrics.tightBoundingRect.height - implicitHeight
             visible: root.use12h
             color: Qt.rgba(root.clSurfaceContainerHigh.r, root.clSurfaceContainerHigh.g, root.clSurfaceContainerHigh.b, 0.45)
-            radius: 16 * root.centerScale
+            radius: 12 * root.centerScale
 
             implicitWidth: minuteMetrics.tightBoundingRect.width
-            implicitHeight: amPmMetrics.tightBoundingRect.height + (32 * root.centerScale)
+            implicitHeight: amPmMetrics.tightBoundingRect.height + (16 * root.centerScale)
 
             Text {
                 id: amPm
@@ -116,9 +116,9 @@ ColumnLayout {
                 color: root.clSurfaceFg
                 font {
                     family: root.clockFontFamily
-                    pointSize: Math.max(1, Math.round(25 * root.centerScale))
+                    pointSize: Math.max(1, Math.round(20 * root.centerScale))
                     weight: Font.Normal
-                    variableAxes: ({ "wdth": 30 })
+                    variableAxes: ({ "wdth": 100 })
                 }
 
                 TextMetrics {
@@ -136,7 +136,7 @@ ColumnLayout {
         text: Qt.formatDate(root.currentTime, "dddd • d MMM").toUpperCase()
         font {
             family: root.clockFontFamily
-            pointSize: 16
+            pointSize: Math.max(10, Math.round(14 * root.centerScale))
             weight: Font.DemiBold
             letterSpacing: 1.5
         }

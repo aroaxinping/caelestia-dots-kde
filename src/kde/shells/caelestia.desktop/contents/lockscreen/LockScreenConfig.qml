@@ -18,6 +18,7 @@ QtObject {
     // ── Font Sizes ──
     readonly property int sizeVerySmall: 12
     readonly property int sizeSmall: 14
+    readonly property int sizeNormal: 14
     readonly property int sizeMedium: 16
     readonly property int sizeLarge: 20
     readonly property int sizeVeryLarge: 28

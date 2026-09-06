@@ -29,8 +29,9 @@ Item {
     readonly property real lockHeight: Math.min(width, height)
     readonly property real lockLong: lockHeight * 0.7 * (16.0 / 9.0)
     readonly property real lockShort: lockHeight * 0.7
-    readonly property real centerScale: Math.min(1, lockHeight / 1440)
-    readonly property real centerWidth: 600 * centerScale
+    readonly property real centerScale: Math.max(0.65, lockHeight / 1080)
+    readonly property real centerWidth: 400 * centerScale
+    readonly property real passwordPillWidth: 300 * centerScale
     readonly property bool isPortrait: height > width * 1.2
     // use12h: read from ~/.config/caelestia/shell.json services.useTwelveHourClock if set,
     // otherwise fall back to the system locale — same logic as serviceconfig.hpp default.
@@ -58,8 +59,26 @@ Item {
     readonly property real bgRadius: 42 * (lockHeight / 1080)
     readonly property real bgMargin: 16 * (lockHeight / 1080)
     readonly property real cardRadius: bgRadius - bgMargin
-    readonly property color clCardBg: Qt.rgba(clSurfaceContainer.r, clSurfaceContainer.g, clSurfaceContainer.b, 0.55)
-    readonly property color clCardBgHigh: Qt.rgba(clSurfaceContainerHigh.r, clSurfaceContainerHigh.g, clSurfaceContainerHigh.b, 0.55)
+    function getLuminance(c) {
+        if (!c || (c.r === 0 && c.g === 0 && c.b === 0)) return 0;
+        return Math.sqrt(0.299 * (c.r * c.r) + 0.587 * (c.g * c.g) + 0.114 * (c.b * c.b));
+    }
+
+    function alterColour(c, a, layer) {
+        if (!c) return Qt.rgba(0.15, 0.15, 0.15, a);
+        var luminance = getLuminance(c);
+        if (luminance === 0) return Qt.rgba(0.12, 0.12, 0.12, a);
+        // Brightness elevation offset for frosted widgets over blur (matches Caelestia alterColour)
+        var offset = 0.3 * (1 - 0.7) * 1.5;
+        var scale = (luminance + offset) / luminance;
+        var r = Math.max(0, Math.min(1, c.r * scale));
+        var g = Math.max(0, Math.min(1, c.g * scale));
+        var b = Math.max(0, Math.min(1, c.b * scale));
+        return Qt.rgba(r, g, b, a);
+    }
+
+    readonly property color clCardBg: alterColour(clSurfaceContainer, 0.60, 1)
+    readonly property color clCardBgHigh: alterColour(clSurfaceContainerHigh, 0.60, 1)
 
     // Material You palette — defaults from Catppuccin Mocha dark.
     // All components receive these via explicit property bindings from this root
@@ -545,6 +564,21 @@ Item {
             width: lockScreenUi.lockLong
             height: lockScreenUi.lockShort
             visible: !lockScreenUi.isPortrait
+            clip: true
+
+            readonly property real innerHeight: height - 2 * lockScreenUi.bgMargin
+            readonly property real colSpacing: 16 * lockScreenUi.centerScale
+            readonly property real leftCardPool: innerHeight - 2 * colSpacing
+            readonly property real rightCardPool: innerHeight - 1 * colSpacing
+
+            readonly property real centerSpacing: innerHeight >= 680
+                ? Math.round(18 * lockScreenUi.centerScale)
+                : (innerHeight >= 560 ? Math.round(10 * lockScreenUi.centerScale) : Math.max(6, Math.round(8 * lockScreenUi.centerScale)))
+            readonly property real avatarHeightRatio: innerHeight >= 680 ? 0.36 : (innerHeight >= 560 ? 0.30 : 0.24)
+            readonly property real avatarWidthRatio: innerHeight >= 680 ? 0.85 : (innerHeight >= 560 ? 0.75 : 0.60)
+            readonly property real avatarSize: Math.min(lockScreenUi.centerWidth * avatarWidthRatio, innerHeight * avatarHeightRatio)
+            readonly property real avatarMargin: innerHeight >= 680 ? Math.max(6, 8 * lockScreenUi.centerScale) : (innerHeight >= 560 ? 4 : 2)
+            readonly property real centerItemMargin: innerHeight >= 680 ? Math.max(4, 6 * lockScreenUi.centerScale) : (innerHeight >= 560 ? 2 : 0)
 
             Behavior on height {
                 enabled: lockScreenUi.ready
@@ -567,7 +601,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
+                    color: Qt.rgba(lockScreenUi.clSurface.r, lockScreenUi.clSurface.g, lockScreenUi.clSurface.b, 0.50)
                 }
             }
 
@@ -591,10 +625,13 @@ Item {
                     Layout.alignment: Qt.AlignTop
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 16 * lockScreenUi.centerScale
+                    spacing: landscapeContent.colSpacing
 
                     WeatherCard {
+                        id: weatherCard
                         Layout.fillWidth: true
+                        Layout.preferredHeight: Math.round(landscapeContent.leftCardPool * 0.18)
+                        implicitHeight: Layout.preferredHeight
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         weatherInfo: weatherLoader.weatherInfo
@@ -605,7 +642,10 @@ Item {
                     }
 
                     CaelestiafetchCard {
+                        id: fetchCard
                         Layout.fillWidth: true
+                        Layout.preferredHeight: Math.round(landscapeContent.leftCardPool * 0.35)
+                        implicitHeight: Layout.preferredHeight
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         fetchInfo: fetchLoader.fetchInfo
@@ -621,8 +661,11 @@ Item {
                     }
 
                     MediaCard {
+                        id: mediaCard
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        Layout.preferredHeight: Math.max(0, landscapeContent.leftCardPool - weatherCard.Layout.preferredHeight - fetchCard.Layout.preferredHeight)
+                        implicitHeight: Layout.preferredHeight
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         mediaInfo: lockScreenUi.liveMedia
@@ -638,99 +681,112 @@ Item {
                 }
 
                 // Center Column
-                ColumnLayout {
+                Item {
+                    id: centerColumnArea
                     Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
                     Layout.preferredWidth: lockScreenUi.centerWidth
                     Layout.fillWidth: false
-                    Layout.topMargin: 20 * lockScreenUi.centerScale
-                    spacing: 20 * lockScreenUi.centerScale
+                    Layout.fillHeight: true
 
-                    ClockWidget {
-                        Layout.alignment: Qt.AlignHCenter
-                        use12h: lockScreenUi.use12h
-                        centerScale: lockScreenUi.centerScale
-                        clPrimary: lockScreenUi.clPrimary
-                        clSecondary: lockScreenUi.clSecondary
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
-                        clSurfaceFg: lockScreenUi.clSurfaceFg
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                    }
+                    ColumnLayout {
+                        id: centerMainColumn
+                        anchors.centerIn: parent
+                        width: parent.width
+                        spacing: landscapeContent.centerSpacing
 
-                    ProfileAvatar {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 24 * lockScreenUi.centerScale
-                        Layout.bottomMargin: 16 * lockScreenUi.centerScale
-                        implicitWidth: lockScreenUi.centerWidth * 0.7
-                        implicitHeight: implicitWidth
-                        centerScale: lockScreenUi.centerScale
-                        profileShape: lockScreenUi.profilePicShape
-                        rotateShape: lockScreenUi.rotateProfilePic
-                        userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
-                        userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                        clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
-                    }
+                        ClockWidget {
+                            Layout.alignment: Qt.AlignHCenter
+                            use12h: lockScreenUi.use12h
+                            centerScale: lockScreenUi.centerScale
+                            clPrimary: lockScreenUi.clPrimary
+                            clSecondary: lockScreenUi.clSecondary
+                            clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
+                            clSurfaceFg: lockScreenUi.clSurfaceFg
+                            clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        }
 
-                    GreetingPill {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.bottomMargin: 16 * lockScreenUi.centerScale
-                        centerScale: lockScreenUi.centerScale
-                        greetingInfo: lockScreenUi.greetingInfo
-                        userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                        clPrimary: lockScreenUi.clPrimary
-                    }
+                        ProfileAvatar {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: landscapeContent.avatarMargin
+                            Layout.bottomMargin: landscapeContent.avatarMargin
+                            implicitWidth: landscapeContent.avatarSize
+                            implicitHeight: landscapeContent.avatarSize
+                            Layout.preferredWidth: implicitWidth
+                            Layout.preferredHeight: implicitHeight
+                            centerScale: lockScreenUi.centerScale
+                            profileShape: lockScreenUi.profilePicShape
+                            rotateShape: lockScreenUi.rotateProfilePic
+                            userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
+                            userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
+                            clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                            clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
+                        }
 
-                    PasswordPill {
-                        id: passwordPill
-                        Layout.alignment: Qt.AlignHCenter
-                        centerScale: lockScreenUi.centerScale
-                        centerWidth: lockScreenUi.centerWidth
-                        focus: !lockScreenUi.isPortrait
-                        isAuthenticating: lockScreenUi.isAuthenticating
-                        graceLocked: authHandler.graceLocked
-                        lockoutActive: authHandler.lockoutActive
-                        lockoutText: authHandler.lockoutText
-                        hasFingerprint: lockScreenUi.hasFingerprint
-                        fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
-                        clError: lockScreenUi.clError
-                        clSurfaceContainer: lockScreenUi.clCardBg
-                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
-                        clSurfaceFg: lockScreenUi.clSurfaceFg
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                        clPrimary: lockScreenUi.clPrimary
-                        clPrimaryFg: lockScreenUi.clPrimaryFg
-                        onLoginRequested: pass => lockScreenUi.startLogin(pass)
-                    }
+                        GreetingPill {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.bottomMargin: landscapeContent.centerItemMargin
+                            centerScale: lockScreenUi.centerScale
+                            centerWidth: lockScreenUi.centerWidth
+                            greetingInfo: lockScreenUi.greetingInfo
+                            userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
+                            clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                            clPrimary: lockScreenUi.clPrimary
+                        }
 
-                    Session {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 4 * lockScreenUi.centerScale
-                        centerScale: lockScreenUi.centerScale
-                        isAuthenticating: lockScreenUi.isAuthenticating
-                        clPrimary: lockScreenUi.clPrimary
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                        sessionManagement: sessionManagement
-                        customIcons: lockScreenUi.sessionIcons
-                        showSleep: lockScreenUi.showSleep
-                        showHibernate: lockScreenUi.showHibernate
-                        showSwitchUser: lockScreenUi.showSwitchUser
-                        showLogout: lockScreenUi.showLogout
-                        showReboot: lockScreenUi.showReboot
-                        showShutdown: lockScreenUi.showShutdown
+                        PasswordPill {
+                            id: passwordPill
+                            Layout.alignment: Qt.AlignHCenter
+                            centerScale: lockScreenUi.centerScale
+                            centerWidth: lockScreenUi.centerWidth
+                            pillWidth: lockScreenUi.passwordPillWidth
+                            focus: !lockScreenUi.isPortrait
+                            isAuthenticating: lockScreenUi.isAuthenticating
+                            graceLocked: authHandler.graceLocked
+                            lockoutActive: authHandler.lockoutActive
+                            lockoutText: authHandler.lockoutText
+                            hasFingerprint: lockScreenUi.hasFingerprint
+                            fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
+                            clError: lockScreenUi.clError
+                            clSurfaceContainer: lockScreenUi.clCardBg
+                            clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
+                            clSurfaceFg: lockScreenUi.clSurfaceFg
+                            clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                            clPrimary: lockScreenUi.clPrimary
+                            clPrimaryFg: lockScreenUi.clPrimaryFg
+                            onLoginRequested: pass => lockScreenUi.startLogin(pass)
+                        }
+
+                        Session {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: landscapeContent.centerItemMargin
+                            centerScale: lockScreenUi.centerScale
+                            isAuthenticating: lockScreenUi.isAuthenticating
+                            clPrimary: lockScreenUi.clPrimary
+                            clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                            sessionManagement: sessionManagement
+                            customIcons: lockScreenUi.sessionIcons
+                            showSleep: lockScreenUi.showSleep
+                            showHibernate: lockScreenUi.showHibernate
+                            showSwitchUser: lockScreenUi.showSwitchUser
+                            showLogout: lockScreenUi.showLogout
+                            showReboot: lockScreenUi.showReboot
+                            showShutdown: lockScreenUi.showShutdown
+                        }
                     }
 
                     // Status Messages (Caps Lock, Errors / Logs, Fingerprint)
                     Item {
                         id: landscapeStatusContainer
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 64 * lockScreenUi.centerScale
-                        implicitHeight: Layout.preferredHeight
-                        Layout.topMargin: 2 * lockScreenUi.centerScale
-                        Layout.bottomMargin: 6 * lockScreenUi.centerScale
+                        anchors.top: centerMainColumn.bottom
+                        anchors.topMargin: landscapeContent.innerHeight >= 680 ? 6 : 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
+                        readonly property bool hasStatus: (capsLockState.locked && !lockScreenUi.authMessage) || Boolean(lockScreenUi.authMessage) || lockScreenUi.hasFingerprint
+                        visible: hasStatus
+                        height: hasStatus ? Math.max(14, statusCol.implicitHeight) : 0
 
                         Column {
+                            id: statusCol
                             anchors.top: parent.top
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
@@ -780,11 +836,13 @@ Item {
                     Layout.alignment: Qt.AlignTop
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 16 * lockScreenUi.centerScale
+                    spacing: landscapeContent.colSpacing
 
                     ResourcesCard {
+                        id: resourcesCard
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 170 * lockScreenUi.centerScale
+                        Layout.preferredHeight: Math.round(landscapeContent.rightCardPool * 0.23)
+                        implicitHeight: Layout.preferredHeight
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveCpu: lockScreenUi.liveCpu
@@ -813,6 +871,7 @@ Item {
                     NotifDock {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        Layout.preferredHeight: Math.max(0, landscapeContent.rightCardPool - resourcesCard.Layout.preferredHeight)
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
                         liveNotifs: lockScreenUi.liveNotifs
@@ -844,6 +903,7 @@ Item {
             width: Math.min(parent.width * 0.9, lockScreenUi.lockShort)
             height: portraitLayout.implicitHeight + 64 * lockScreenUi.centerScale
             visible: lockScreenUi.isPortrait
+            clip: true
 
             Behavior on height {
                 enabled: lockScreenUi.ready
@@ -866,7 +926,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Qt.rgba(lockScreenUi.clSurfaceContainer.r, lockScreenUi.clSurfaceContainer.g, lockScreenUi.clSurfaceContainer.b, 0.35)
+                    color: Qt.rgba(lockScreenUi.clSurface.r, lockScreenUi.clSurface.g, lockScreenUi.clSurface.b, 0.50)
                 }
             }
 
@@ -908,7 +968,7 @@ Item {
                         centerScale: lockScreenUi.centerScale
                         clPrimary: lockScreenUi.clPrimary
                         clSecondary: lockScreenUi.clSecondary
-                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                     }
@@ -918,6 +978,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.bottomMargin: 8 * lockScreenUi.centerScale
                     centerScale: lockScreenUi.centerScale
+                    centerWidth: lockScreenUi.centerWidth
                     greetingInfo: lockScreenUi.greetingInfo
                     userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
                     pillColor: lockScreenUi.clCardBg
@@ -932,6 +993,7 @@ Item {
                     Layout.bottomMargin: 8 * lockScreenUi.centerScale
                     centerScale: lockScreenUi.centerScale
                     centerWidth: lockScreenUi.centerWidth
+                    pillWidth: lockScreenUi.passwordPillWidth
                     focus: lockScreenUi.isPortrait
                     isAuthenticating: lockScreenUi.isAuthenticating
                     graceLocked: authHandler.graceLocked

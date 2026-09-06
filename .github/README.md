@@ -52,7 +52,7 @@ https://github.com/user-attachments/assets/4c3e20c9-5050-4cc8-8e9c-32fd0594ac8b
 
 | Shell | Lockscreen |
 | :---: | :---: |
-| <img width="460" alt="shell" src="assets/theming-screenshot.png" /> | <img width="460" alt="lockscreen" src="assets/lockscreen-screenshot.png" /> |
+| <img width="460" alt="shell" src="assets/shell-screenshot.png" /> | <img width="460" alt="lockscreen" src="assets/lockscreen-screenshot.png" /> |
 
 ## Keybinds
 

@@ -12,6 +12,11 @@ import ".."
 Item {
     id: root
 
+    implicitWidth: visibleActions.length > 0 ? contentCol.implicitWidth : 0
+    implicitHeight: visibleActions.length > 0 ? (actionsRow.height + Math.max(12, Math.round(14 * root.centerScale)) + contentCol.spacing) : 0
+    width: implicitWidth
+    height: implicitHeight
+
     property bool isAuthenticating: false
     property real centerScale: 1.0
 
@@ -103,11 +108,6 @@ Item {
 
         return actions;
     }
-
-    implicitWidth: visibleActions.length > 0 ? contentCol.implicitWidth : 0
-    implicitHeight: visibleActions.length > 0 ? contentCol.implicitHeight : 0
-    width: implicitWidth
-    height: implicitHeight
 
     visible: visibleActions.length > 0
 
@@ -212,8 +212,8 @@ Item {
 
                 Item {
                     id: actionBtn
-                    width: 36 * root.centerScale
-                    height: 36 * root.centerScale
+                    width: Math.max(26, Math.round(32 * root.centerScale))
+                    height: width
 
                     readonly property var actionData: modelData
                     readonly property bool isHovered: btnMouse.containsMouse
@@ -231,7 +231,7 @@ Item {
                             anchors.centerIn: parent
                             text: actionBtn.actionData.icon
                             font.family: LockScreenConfig.fontIcon
-                            font.pixelSize: LockScreenConfig.sizeLarge * root.centerScale
+                            font.pixelSize: Math.max(16, Math.round(20 * root.centerScale))
                             color: actionBtn.isHovered ? root.clPrimary : root.clSurfaceVariantFg
 
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -262,16 +262,16 @@ Item {
         Item {
             id: labelContainer
             width: actionsRow.width
-            height: 16 * root.centerScale
+            height: Math.max(12, Math.round(14 * root.centerScale))
             anchors.horizontalCenter: parent.horizontalCenter
 
             Text {
                 anchors.centerIn: parent
                 text: root.hoveredLabel
                 font.family: LockScreenConfig.fontBody
-                font.pixelSize: LockScreenConfig.sizeSmall * root.centerScale
+                font.pixelSize: Math.max(10, Math.round(12 * root.centerScale))
                 color: root.clPrimary
-                opacity: root.hoveredLabel ? 1 : 0
+                opacity: root.hoveredLabel.length > 0 ? 1 : 0
 
                 Behavior on opacity { NumberAnimation { duration: 150 } }
             }

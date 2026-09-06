@@ -15,6 +15,7 @@ FocusScope {
 
     property real centerScale: 1.0
     property real centerWidth: 600 * centerScale
+    property real pillWidth: 0
     property bool isAuthenticating: false
     property bool graceLocked: false
     property bool hasFingerprint: false
@@ -65,17 +66,24 @@ FocusScope {
     TextMetrics {
         id: placeholderMetrics
         text: root.isAuthenticating ? qsTr("Loading...") : (root.graceLocked ? qsTr("Please wait...") : (root.lockoutActive && root.lockoutText.length > 0 ? root.lockoutText : qsTr("Enter your password")))
-        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading; weight: Font.Normal }
+        font { pixelSize: Math.max(11, Math.round(13 * root.centerScale)); family: LockScreenConfig.fontHeading; weight: Font.Normal }
     }
 
-    readonly property real collapsedWidth: Math.min(
-        root.centerWidth * 0.82,
-        placeholderMetrics.width + (130 * root.centerScale)
-    )
-    readonly property real expandedWidth: root.centerWidth * 0.82
+    readonly property real nonInputWidth: {
+        var leftM = Math.max(6, Math.round(10 * root.centerScale));
+        var rightM = Math.max(4, Math.round(6 * root.centerScale));
+        var sp = Math.max(3, Math.round(6 * root.centerScale));
+        var iconW = Math.max(16, Math.round(22 * root.centerScale));
+        var btnW = Math.max(20, Math.round(28 * root.centerScale));
+        return leftM + iconW + (sp * 2) + btnW + rightM;
+    }
+
+    readonly property real collapsedWidth: nonInputWidth + placeholderMetrics.width
+    readonly property real targetExpandedWidth: root.pillWidth > 0 ? root.pillWidth : root.centerWidth
+    readonly property real expandedWidth: Math.max(collapsedWidth, targetExpandedWidth)
 
     implicitWidth: passwordBox.text.length > 0 ? expandedWidth : collapsedWidth
-    implicitHeight: 52
+    implicitHeight: Math.max(28, Math.round(42 * root.centerScale))
     transform: Translate { x: root.shakeX }
 
     Behavior on implicitWidth {
@@ -107,22 +115,22 @@ FocusScope {
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 16 * root.centerScale
-            anchors.rightMargin: 8 * root.centerScale
-            spacing: 12 * root.centerScale
+            anchors.leftMargin: Math.max(6, Math.round(10 * root.centerScale))
+            anchors.rightMargin: Math.max(4, Math.round(6 * root.centerScale))
+            spacing: Math.max(3, Math.round(6 * root.centerScale))
 
             // Left: Lock / Fingerprint Icon / Spinner
             Item {
                 id: iconWrapper
-                Layout.preferredWidth: 32 * root.centerScale
-                Layout.preferredHeight: 32 * root.centerScale
+                Layout.preferredWidth: Math.max(16, Math.round(22 * root.centerScale))
+                Layout.preferredHeight: Layout.preferredWidth
                 Layout.alignment: Qt.AlignVCenter
 
                 Text {
                     anchors.centerIn: parent
                     text: root.fprintDisabledDueToTries ? "fingerprint_off" : (root.hasFingerprint ? "fingerprint" : "lock")
                     font.family: LockScreenConfig.fontIcon
-                    font.pixelSize: LockScreenConfig.sizeLarge
+                    font.pixelSize: Math.max(12, Math.round(16 * root.centerScale))
                     color: (root.graceLocked || root.lockoutActive) ? root.clError : (root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg)
                     visible: !root.isAuthenticating
                     Behavior on color { ColorAnimation { duration: 250 } }
@@ -131,7 +139,7 @@ FocusScope {
                 Item {
                     id: spinner
                     anchors.centerIn: parent
-                    width: 22 * root.centerScale; height: width
+                    width: 18 * root.centerScale; height: width
                     visible: root.isAuthenticating
                     Rectangle {
                         width: parent.width * 0.3; height: width; radius: width / 2
@@ -256,8 +264,10 @@ FocusScope {
             // Right: MaterialShape Enter Arrow / Circle Button
             Item {
                 id: enterButton
-                Layout.preferredWidth: 44 * root.centerScale
-                Layout.preferredHeight: 44 * root.centerScale
+                implicitWidth: Math.max(20, Math.round(28 * root.centerScale))
+                implicitHeight: implicitWidth
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
                 Layout.alignment: Qt.AlignVCenter
 
                 MaterialShape {
@@ -285,8 +295,8 @@ FocusScope {
                     anchors.centerIn: parent
                     text: "arrow_forward"
                     font.family: LockScreenConfig.fontIcon
-                    font.pixelSize: LockScreenConfig.sizeLarge
-                    color: root.clSurfaceVariantFg
+                    font.pixelSize: Math.max(11, Math.round(14 * root.centerScale))
+                    color: passwordBox.text.length > 0 ? root.clPrimaryFg : root.clSurfaceVariantFg
                     opacity: passwordBox.text.length > 0 ? 0 : 1
                     Behavior on opacity { NumberAnimation { duration: 150 } }
                 }

@@ -42,11 +42,12 @@ Rectangle {
     property real cardRadius: 26
     radius: cardRadius
     color: clSurfaceContainer
+    clip: true
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 14 * centerScale
-        spacing: 12 * centerScale
+        anchors.margins: Math.max(8, 12 * root.centerScale)
+        spacing: Math.max(6, 10 * root.centerScale)
 
         // CPU Resource (MaterialShape.Pentagon)
         ResourceItem {
@@ -65,16 +66,21 @@ Rectangle {
 
             MaterialShape {
                 id: tempBadge
-                x: cpu.mShape.pointAtAngle(45).x - implicitSize / 2 + 8 * root.centerScale
-                y: cpu.mShape.pointAtAngle(45).y - implicitSize / 2
+                readonly property real badgeSize: Math.max(16, Math.round(cpu.shapeSize * 0.32))
+                x: cpu.mShape.pointAtAngle(45).x - badgeSize / 2 + Math.max(2, 4 * root.centerScale)
+                y: cpu.mShape.pointAtAngle(45).y - badgeSize / 2
                 shape: root.liveTemp > 90 ? MaterialShape.SoftBurst : MaterialShape.Circle
                 color: root.liveTemp > 90 ? root.clError : root.clSecondaryContainer
-                implicitSize: 34
+                implicitSize: badgeSize
 
                 Text {
                     anchors.centerIn: parent
                     text: root.liveTemp + "°C"
-                    font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontMetrics; weight: Font.Medium }
+                    font {
+                        pixelSize: Math.max(8, Math.round(tempBadge.badgeSize * 0.45))
+                        family: LockScreenConfig.fontMetrics
+                        weight: Font.Medium
+                    }
                     color: root.liveTemp > 90 ? root.clSurface : root.clSecondary
                 }
             }
@@ -126,11 +132,15 @@ Rectangle {
         property color iconColor: "#c6c4e0"
         property color valueColor: "#e5e1e7"
 
+        readonly property real shapeSize: Math.max(1, Math.min(width, height))
         readonly property alias mShape: shape
 
         MaterialShape {
             id: shape
-            anchors.fill: parent
+            anchors.centerIn: parent
+            implicitWidth: res.shapeSize
+            implicitHeight: res.shapeSize
+            implicitSize: res.shapeSize
             shape: res.shapeType
             color: res.shapeColor
         }
@@ -193,20 +203,24 @@ Rectangle {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 2 * res.centerScale
+            spacing: 0
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.icon
                 font.family: LockScreenConfig.fontIcon
-                font.pixelSize: LockScreenConfig.sizeVeryLarge
+                font.pixelSize: Math.max(14, Math.round(res.shapeSize * 0.32))
                 color: res.iconColor
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: res.value
-                font { pixelSize: LockScreenConfig.sizeLarge; family: LockScreenConfig.fontMetrics; weight: Font.Medium }
+                font {
+                    pixelSize: Math.max(11, Math.round(res.shapeSize * 0.23))
+                    family: LockScreenConfig.fontMetrics
+                    weight: Font.DemiBold
+                }
                 color: res.valueColor
             }
         }
