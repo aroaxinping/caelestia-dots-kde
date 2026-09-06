@@ -141,7 +141,7 @@ For detailed debug logs, enable Debug Mode in Nexus -> About -> Advanced, then r
 
 | Contributor | Issues |
 | --- | ---: |
-| [0x0nYx](https://github.com/0x0nYx) | 147 |
+| [0x0nYx](https://github.com/0x0nYx) | 156 |
 | [Kyedae](https://github.com/Kyedae) | 17 |
 | [bubbleo0](https://github.com/bubbleo0) | 12 |
 | [RaceConditionWinner](https://github.com/RaceConditionWinner) | 10 |
