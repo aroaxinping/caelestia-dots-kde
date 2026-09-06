@@ -44,9 +44,9 @@ if [[ "$BASE_DISTRO" == "arch" ]]; then
     fi
     if [[ -f /etc/makepkg.conf ]] && grep -q '!ccache' /etc/makepkg.conf; then
         info "Enabling ccache in /etc/makepkg.conf (system-wide makepkg setting)..."
-        sudo sed -i 's/!ccache/ccache/' /etc/makepkg.conf
         mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/caelestia"
         touch "${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/ccache-enabled"
+        sudo sed -i 's/!ccache/ccache/' /etc/makepkg.conf
     fi
     ok "makepkg ccache configured."
 

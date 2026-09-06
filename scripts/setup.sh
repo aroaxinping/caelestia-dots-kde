@@ -308,13 +308,21 @@ cleanup_install_state() {
     tput cnorm 2>/dev/null || true
     printf '\033[0m\033[?1049l\033[?25h' 2>/dev/null || true
 
-    if [[ -f /tmp/caelestia_inhibit.pid ]]; then
-        kill -9 "$(cat /tmp/caelestia_inhibit.pid)" 2>/dev/null || true
+    local inhibit_dir="${XDG_RUNTIME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}}/caelestia"
+    local inhibit_pid="$inhibit_dir/inhibit.pid"
+    local kde_cookie="$inhibit_dir/kde_inhibit.cookie"
+    if [[ -f "$inhibit_pid" ]]; then
+        local pid
+        pid="$(cat "$inhibit_pid")"
+        if [[ -r "/proc/$pid/cmdline" ]] &&
+            tr '\0' ' ' <"/proc/$pid/cmdline" | grep -q systemd-inhibit; then
+            kill -9 "$pid" 2>/dev/null || true
+        fi
     fi
-    if [[ -f /tmp/caelestia_kde_inhibit.cookie ]]; then
-        qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit "$(cat /tmp/caelestia_kde_inhibit.cookie)" 2>/dev/null || true
+    if [[ -f "$kde_cookie" ]]; then
+        qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit "$(cat "$kde_cookie")" 2>/dev/null || true
     fi
-    rm -f /tmp/caelestia_inhibit.pid /tmp/caelestia_kde_inhibit.cookie
+    rm -f "$inhibit_pid" "$kde_cookie"
 }
 trap cleanup_install_state EXIT
 

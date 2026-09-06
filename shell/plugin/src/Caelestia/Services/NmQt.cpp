@@ -467,15 +467,21 @@ void NmQt::forgetNetwork(const QString& ssid, QJSValue callback) {
     }
 
     auto remaining = QSharedPointer<int>(new int(matches.size()));
+    auto failed = QSharedPointer<QString>(new QString);
     for (const auto& conn : matches) {
         QDBusPendingReply<> reply = conn->remove();
         auto* watcher = new QDBusPendingCallWatcher(reply, this);
-        connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, callback, remaining](QDBusPendingCallWatcher* w) {
+        connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, callback, remaining, failed](QDBusPendingCallWatcher* w) {
+            if (w->isError() && failed->isEmpty())
+                *failed = w->error().message();
             w->deleteLater();
             if (--*remaining > 0)
                 return;
             refreshSavedConnections();
-            invokeCallback(callback, true, QStringLiteral("Deleted"));
+            if (failed->isEmpty())
+                invokeCallback(callback, true, QStringLiteral("Deleted"));
+            else
+                invokeCallback(callback, false, {}, *failed, -1);
         });
     }
 }

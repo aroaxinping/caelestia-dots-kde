@@ -255,7 +255,7 @@ In addition to dynamic variables generated from `menu.json` selections, the C++ 
 | Variable | Description |
 |----------|-------------|
 | `PATH` | Prepends the per-run private sudo wrapper dir to enable the custom sudo credential wrapper. |
-| `SUDO_ASKPASS` | Points to the per-run askpass helper that supplies the sudo password. |
+| `SUDO_PASS` | Password exported to step scripts that require it. |
 | `CACHE_DIR` | The primary Caelestia cache directory (usually `~/.cache/caelestia-kde`). |
 | `BUILDDIR` | The directory used for building AUR packages (`makepkg-build`). |
 | `PKGDEST` | The destination for compiled `.pkg.tar.zst` packages. |

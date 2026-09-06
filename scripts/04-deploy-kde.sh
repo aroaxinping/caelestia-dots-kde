@@ -18,9 +18,12 @@ BUNDLE_DIR="${BUNDLE_DIR:?BUNDLE_DIR not set}"
 
 # True when a Darkly KWin decoration is actually installed and loadable.
 darkly_decoration_installed() {
-    [[ -d /usr/share/kwin/decorations/org.kde.darkly ]] ||
-    [[ -d /usr/local/share/kwin/decorations/org.kde.darkly ]] ||
-    [[ -d "${XDG_DATA_HOME:-$HOME/.local/share}/kwin/decorations/org.kde.darkly" ]]
+    local plugin_dir
+    plugin_dir="$(qtpaths6 --plugin-dir 2>/dev/null || true)"
+    [[ -n "$plugin_dir" && -f "$plugin_dir/org.kde.kdecoration3/org.kde.darkly.so" ]] ||
+    [[ -f /usr/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so ]] ||
+    [[ -f /usr/local/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so ]] ||
+    [[ -f "${HOME}/.local/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so" ]]
 }
 
 echo
@@ -59,7 +62,7 @@ if [[ "${APPLY_DARKLY:-true}" == "true" ]]; then
         kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
             --key "library" "org.kde.breeze" 2>/dev/null || true
         kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-            --key "theme" "@breeze" 2>/dev/null || true
+            --key "theme" "Breeze" 2>/dev/null || true
     fi
 
 else

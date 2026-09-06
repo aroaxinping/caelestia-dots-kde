@@ -602,9 +602,12 @@ fi
 # Revert the system-wide ccache flip made by 01-ensure-prereqs.sh, if we made it.
 CCACHE_FLAG="${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/ccache-enabled"
 if [[ -f "$CCACHE_FLAG" ]] && [[ -f /etc/makepkg.conf ]]; then
-    sudo sed -i 's/ccache/!ccache/' /etc/makepkg.conf
-    rm -f "$CCACHE_FLAG"
-    ok "Reverted ccache in /etc/makepkg.conf"
+    if sudo sed -i 's/\(^\|[[:space:]]\)ccache\([[:space:]]\|$\)/\1!ccache\2/' /etc/makepkg.conf; then
+        rm -f "$CCACHE_FLAG"
+        ok "Reverted ccache in /etc/makepkg.conf"
+    else
+        warn "Could not revert ccache in /etc/makepkg.conf; retaining ownership marker."
+    fi
 fi
 
 # sudoers file for ydotoold

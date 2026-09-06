@@ -10,10 +10,12 @@
 #include <cstdlib>
 #include <ctime>
 #include <fcntl.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <thread>
 #include <unordered_map>
 #include <unistd.h>
@@ -56,37 +58,68 @@ bool write_file_excl(const string& path, const string& content, int mode) {
 // Sets up the sudo askpass environment after a successful password
 // verification. Creates the password file, askpass helper, sudo wrapper,
 // screen inhibitor, and exports SUDO_PASS.
-void setup_sudo_environment(const string& pw) {
+bool setup_sudo_environment(const string& pw) {
     // Per-run, user-owned temp dir instead of a fixed, predictable /tmp path.
     // mkdtemp creates it 0700, and the O_EXCL writes below can't follow a
     // symlink someone else planted at a known name.
     char tmpl[] = "/tmp/caelestia-bin.XXXXXX";
     char* dir = mkdtemp(tmpl);
     if (!dir) {
-        return;
+        return false;
     }
     g_sudo_bin_dir = dir;
 
-    write_password_file_secure(g_sudo_bin_dir + "/pass.txt", pw);
+    if (!write_password_file_secure(g_sudo_bin_dir + "/pass.txt", pw)) {
+        std::filesystem::remove_all(g_sudo_bin_dir);
+        g_sudo_bin_dir.clear();
+        return false;
+    }
 
     string askpass = "#!/bin/bash\ncat " + g_sudo_bin_dir + "/pass.txt\n";
-    write_file_excl(g_sudo_bin_dir + "/askpass.sh", askpass, 0700);
+    if (!write_file_excl(g_sudo_bin_dir + "/askpass.sh", askpass, 0700)) {
+        std::filesystem::remove_all(g_sudo_bin_dir);
+        g_sudo_bin_dir.clear();
+        return false;
+    }
 
     string wrapper = "#!/bin/bash\nexport SUDO_ASKPASS=" + g_sudo_bin_dir +
                      "/askpass.sh\nexec /usr/bin/sudo -A \"$@\"\n";
-    write_file_excl(g_sudo_bin_dir + "/sudo", wrapper, 0700);
+    if (!write_file_excl(g_sudo_bin_dir + "/sudo", wrapper, 0700)) {
+        std::filesystem::remove_all(g_sudo_bin_dir);
+        g_sudo_bin_dir.clear();
+        return false;
+    }
 
     // Also export SUDO_PASS for some scripts (like 09-system-tweaks.sh) that might rely on it
     setenv("SUDO_PASS", pw.c_str(), 1);
 
+    const char* runtime = getenv("XDG_RUNTIME_DIR");
+    const char* home = getenv("HOME");
+    string state_dir = string(runtime ? runtime : (getenv("XDG_STATE_HOME")
+        ? getenv("XDG_STATE_HOME")
+        : (home ? string(home) + "/.local/state" : "/tmp"))) + "/caelestia";
+    std::error_code state_error;
+    std::filesystem::create_directories(state_dir, state_error);
+    if (state_error || chmod(state_dir.c_str(), 0700) != 0) {
+        std::filesystem::remove_all(g_sudo_bin_dir);
+        g_sudo_bin_dir.clear();
+        return false;
+    }
+    const string pid_file = state_dir + "/inhibit.pid";
+    const string cookie_file = state_dir + "/kde_inhibit.cookie";
+
     // Reap an inhibitor left by a killed earlier run before starting a fresh
-    // one; the shell EXIT trap can't run on SIGKILL or a hard crash.
-    system("if [ -f /tmp/caelestia_inhibit.pid ]; then kill -9 \"$(cat /tmp/caelestia_inhibit.pid)\" 2>/dev/null; fi");
-    system("if [ -f /tmp/caelestia_kde_inhibit.cookie ]; then qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit \"$(cat /tmp/caelestia_kde_inhibit.cookie)\" 2>/dev/null; fi");
+    // one; the shell EXIT trap can't run on SIGKILL or a hard crash. Only kill
+    // a process whose command line identifies it as our systemd inhibitor.
+    system(("if [ -f \"" + pid_file + "\" ]; then p=$(cat \"" + pid_file +
+            "\"); if [ -r \"/proc/$p/cmdline\" ] && tr '\\0' ' ' < \"/proc/$p/cmdline\" | grep -q systemd-inhibit; then kill -9 \"$p\" 2>/dev/null; fi; fi").c_str());
+    system(("if [ -f \"" + cookie_file + "\" ]; then qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit \"$(cat \"" +
+            cookie_file + "\")\" 2>/dev/null; fi").c_str());
 
     // Start background keep-awake for display (sleep inhibitor)
-    system("systemd-inhibit --what=idle:sleep --who=\"Caelestia Installer\" --why=\"Installation in progress\" bash -c 'while :; do sleep 600; done' >/dev/null 2>&1 & echo $! > /tmp/caelestia_inhibit.pid");
-    system("qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.Inhibit \"Caelestia Installer\" \"Installation in progress\" > /tmp/caelestia_kde_inhibit.cookie 2>/dev/null");
+    system(("systemd-inhibit --what=idle:sleep --who=\"Caelestia Installer\" --why=\"Installation in progress\" bash -c 'while :; do sleep 600; done' >/dev/null 2>&1 & echo $! > \"" + pid_file + "\"").c_str());
+    system(("qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.Inhibit \"Caelestia Installer\" \"Installation in progress\" > \"" + cookie_file + "\" 2>/dev/null").c_str());
+    return true;
 }
 
 // Human-readable distro label shown on the welcome screen.
@@ -436,8 +469,11 @@ namespace UI {
                     fflush(pipe);
                     int status = pclose(pipe);
                     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-                        setup_sudo_environment(candidate);
-                        return true;
+                        if (setup_sudo_environment(candidate))
+                            return true;
+                        error_msg = "Could not prepare secure sudo helpers.";
+                        pw.clear();
+                        return false;
                     }
                 }
                 attempts++;
