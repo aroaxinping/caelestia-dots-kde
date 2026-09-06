@@ -19,14 +19,20 @@ Item {
     readonly property var activeAuthenticator: authenticatorTarget
 
     property bool isAuthenticating: false
-    property bool graceLocked: false
+    property bool localGraceLocked: false
+    readonly property bool graceLocked: localGraceLocked || Boolean(activeAuthenticator && activeAuthenticator.graceLocked)
     property string authMessage: ""
+
+    property int lockoutSecondsRemaining: 0
+    readonly property int lockoutMinutesRemaining: Math.ceil(lockoutSecondsRemaining / 60)
+    readonly property bool lockoutActive: lockoutSecondsRemaining > 0
+    readonly property string lockoutText: lockoutMinutesRemaining > 0 ? (lockoutMinutesRemaining + " min left") : ""
 
     property int fprintTries: 0
     property int maxFprintTries: 3
     property int timeoutInterval: 15000
     property int notificationDismissInterval: 5000
-    property int graceLockInterval: 2100
+    property int graceLockInterval: 3000
 
     signal messageChanged(string message)
     signal shakeRequested()
@@ -35,23 +41,77 @@ Item {
     signal notificationRepeated()
     signal succeeded()
 
+    function isExactFailMsg(msg) {
+        if (!msg) return false;
+        var trimmed = (typeof msg === "string") ? msg.trim() : "";
+        var lower = trimmed.toLowerCase();
+        var localized = i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed").trim();
+        return lower === "unlocking failed" ||
+               lower === "unlocking failed." ||
+               trimmed === localized ||
+               trimmed === (localized + ".");
+    }
+
+    function extractTimeInSeconds(text) {
+        if (!text || typeof text !== "string") return -1;
+        var hrMatch = text.match(/\b(\d+)\s*(?:hours?|hrs?|hr)\b/i);
+        var minMatch = text.match(/\b(\d+)\s*(?:minutes?|mins?|min)\b/i);
+        var secMatch = text.match(/\b(\d+)\s*(?:seconds?|secs?|sec)\b/i);
+
+        var totalSec = 0;
+        var found = false;
+
+        if (hrMatch) { totalSec += parseInt(hrMatch[1], 10) * 3600; found = true; }
+        if (minMatch) { totalSec += parseInt(minMatch[1], 10) * 60; found = true; }
+        if (secMatch) { totalSec += parseInt(secMatch[1], 10); found = true; }
+
+        return found ? totalSec : -1;
+    }
+
+    function stripTimeLines(text) {
+        if (!text || typeof text !== "string") return "";
+        var lines = text.split("\n");
+        var kept = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line) continue;
+            if (extractTimeInSeconds(line) > 0) {
+                continue;
+            }
+            if (isExactFailMsg(line)) {
+                continue;
+            }
+            kept.push(line);
+        }
+        return kept.join("\n");
+    }
+
     function handleMessage(msg) {
         if (!msg || (typeof msg === "string" && msg.trim().length === 0)) return;
 
+        var extractedSec = extractTimeInSeconds(msg);
+        if (extractedSec > 0) {
+            root.lockoutSecondsRemaining = extractedSec;
+            lockoutCountdownTimer.restart();
+        }
+
+        var filteredMsg = stripTimeLines(msg);
+        if (!filteredMsg || filteredMsg.trim().length === 0 || isExactFailMsg(filteredMsg)) return;
+
         if (typeof parent !== "undefined" && typeof parent.notification !== "undefined") {
             if (!parent.notification) {
-                parent.notification += msg;
-            } else if (parent.notification.includes(msg)) {
+                parent.notification += filteredMsg;
+            } else if (parent.notification.includes(filteredMsg)) {
                 root.notificationRepeated();
             } else {
-                parent.notification += "\n" + msg;
+                parent.notification += "\n" + filteredMsg;
             }
             root.authMessage = parent.notification;
         } else {
             if (!root.authMessage) {
-                root.authMessage = msg;
-            } else if (!root.authMessage.includes(msg)) {
-                root.authMessage += "\n" + msg;
+                root.authMessage = filteredMsg;
+            } else if (!root.authMessage.includes(filteredMsg)) {
+                root.authMessage += "\n" + filteredMsg;
             } else {
                 root.notificationRepeated();
             }
@@ -65,7 +125,7 @@ Item {
         if (!pass || pass.length === 0 || root.isAuthenticating || root.graceLocked) return;
         root.clearAuthMessage();
         root.isAuthenticating = true;
-        root.graceLocked = false;
+        root.localGraceLocked = false;
         authTimeoutTimer.restart();
         if (activeAuthenticator && typeof activeAuthenticator.respond === "function") {
             activeAuthenticator.respond(pass);
@@ -89,9 +149,9 @@ Item {
         interval: root.timeoutInterval
         repeat: false
         onTriggered: {
-            if (root.isAuthenticating || root.graceLocked) {
+            if (root.isAuthenticating || root.localGraceLocked) {
                 root.isAuthenticating = false;
-                root.graceLocked = false;
+                root.localGraceLocked = false;
                 root.clearPasswordRequested();
                 if (!root.authMessage) {
                     root.handleMessage(i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Authentication timed out"));
@@ -123,13 +183,25 @@ Item {
 
     Timer {
         id: fallbackUnlockTimer
-        interval: 400
+        interval: 2000
         repeat: false
         onTriggered: {
-            if (root.graceLocked || root.isAuthenticating) {
-                root.graceLocked = false;
+            if (root.localGraceLocked || root.isAuthenticating) {
+                root.localGraceLocked = false;
                 root.isAuthenticating = false;
                 root.focusSecretRequested();
+            }
+        }
+    }
+
+    Timer {
+        id: lockoutCountdownTimer
+        interval: 1000
+        repeat: true
+        running: root.lockoutSecondsRemaining > 0
+        onTriggered: {
+            if (root.lockoutSecondsRemaining > 0) {
+                root.lockoutSecondsRemaining--;
             }
         }
     }
@@ -152,20 +224,17 @@ Item {
                 return;
             }
 
-            const failMsg = i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed");
             var authErr = (auth && auth.errorMessage) ? auth.errorMessage :
                           (activeAuthenticator && activeAuthenticator.errorMessage ? activeAuthenticator.errorMessage :
                           (activeAuthenticator && activeAuthenticator.infoMessage ? activeAuthenticator.infoMessage : ""));
 
             if (authErr) {
                 root.handleMessage(authErr);
-            } else if (!root.authMessage) {
-                root.handleMessage(failMsg);
             }
 
             if (!graceLockTimer.running) {
                 root.isAuthenticating = false;
-                root.graceLocked = true;
+                root.localGraceLocked = true;
                 root.shakeRequested();
                 graceLockTimer.interval = root.graceLockInterval;
                 graceLockTimer.restart();
@@ -186,10 +255,12 @@ Item {
 
         function onSucceeded() {
             root.isAuthenticating = false;
-            root.graceLocked = false;
+            root.localGraceLocked = false;
+            root.lockoutSecondsRemaining = 0;
             authTimeoutTimer.stop();
             graceLockTimer.stop();
             fallbackUnlockTimer.stop();
+            lockoutCountdownTimer.stop();
             root.fprintTries = 0;
             root.succeeded();
             Qt.quit();
@@ -215,7 +286,7 @@ Item {
 
         function onPromptForSecretChanged(msg) {
             fallbackUnlockTimer.stop();
-            root.graceLocked = false;
+            root.localGraceLocked = false;
             root.isAuthenticating = false;
             authTimeoutTimer.stop();
             root.focusSecretRequested();
@@ -227,11 +298,11 @@ Item {
                 return;
             }
             root.isAuthenticating = false;
-            root.graceLocked = true;
+            root.localGraceLocked = true;
             root.shakeRequested();
 
-            var delayMs = (uSecDelay && uSecDelay > 0) ? (Math.round(uSecDelay / 1000) + 100) : root.graceLockInterval;
-            graceLockTimer.interval = delayMs;
+            var delayMs = (uSecDelay && uSecDelay > 0) ? (Math.round(uSecDelay / 1000) + 150) : root.graceLockInterval;
+            graceLockTimer.interval = Math.max(delayMs, root.graceLockInterval);
             graceLockTimer.restart();
 
             var msg = (auth && auth.errorMessage) ? auth.errorMessage :
@@ -239,8 +310,6 @@ Item {
                       (activeAuthenticator && activeAuthenticator.infoMessage ? activeAuthenticator.infoMessage : ""));
             if (msg) {
                 root.handleMessage(msg);
-            } else if (!root.authMessage) {
-                root.handleMessage(i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed"));
             }
         }
 
@@ -250,6 +319,16 @@ Item {
                     root.isAuthenticating = false;
                     authTimeoutTimer.stop();
                 }
+            }
+        }
+
+        function onGraceLockedChanged() {
+            if (activeAuthenticator && !activeAuthenticator.graceLocked) {
+                fallbackUnlockTimer.stop();
+                root.localGraceLocked = false;
+                root.isAuthenticating = false;
+                authTimeoutTimer.stop();
+                root.focusSecretRequested();
             }
         }
     }

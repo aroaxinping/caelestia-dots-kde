@@ -25,7 +25,7 @@ Rectangle {
     property bool recolourLogo: true
 
     property real cardRadius: 26
-    radius: cardRadius * centerScale
+    radius: cardRadius
     color: clSurfaceContainer
     // Shrinks-to-fit: titlebar (36) + logo (180) + dots (28) + 2×spacing (12) + 2×margin (18)
     // Matches Quickshell's Fetch.qml content-driven height

@@ -86,6 +86,14 @@ Item {
     readonly property bool isAuthenticating: authHandler.isAuthenticating
     readonly property var activePasswordPill: isPortrait ? portraitPasswordPill : passwordPill
     property string authMessage: ""
+    property bool ready: false
+
+    Timer {
+        id: readyTimer
+        interval: 50
+        running: true
+        onTriggered: lockScreenUi.ready = true
+    }
 
     // XHR file:// is blocked inside kscreenlocker, so read scheme.json and
     // shell.json via cat. The scheme.json 'mode' field ('dark'/'light') switches
@@ -494,6 +502,11 @@ Item {
         id: lockScreenRoot
         anchors.fill: parent
         focus: true
+        opacity: lockScreenUi.ready ? 1.0 : 0.0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 400; easing.type: Easing.OutCubic }
+        }
 
         Component.onCompleted: authenticator.startAuthenticating()
 
@@ -533,6 +546,11 @@ Item {
             height: lockScreenUi.lockShort
             visible: !lockScreenUi.isPortrait
 
+            Behavior on height {
+                enabled: lockScreenUi.ready
+                NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+            }
+
             Item {
                 anchors.fill: lockBg
                 layer.enabled: true
@@ -563,6 +581,7 @@ Item {
             }
 
             RowLayout {
+                id: landscapeLayout
                 anchors.fill: parent
                 anchors.margins: lockScreenUi.bgMargin
                 spacing: 40 * (lockScreenUi.lockHeight / 1080)
@@ -623,7 +642,7 @@ Item {
                     Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
                     Layout.preferredWidth: lockScreenUi.centerWidth
                     Layout.fillWidth: false
-                    Layout.fillHeight: true
+                    Layout.topMargin: 20 * lockScreenUi.centerScale
                     spacing: 20 * lockScreenUi.centerScale
 
                     ClockWidget {
@@ -670,6 +689,8 @@ Item {
                         focus: !lockScreenUi.isPortrait
                         isAuthenticating: lockScreenUi.isAuthenticating
                         graceLocked: authHandler.graceLocked
+                        lockoutActive: authHandler.lockoutActive
+                        lockoutText: authHandler.lockoutText
                         hasFingerprint: lockScreenUi.hasFingerprint
                         fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
                         clError: lockScreenUi.clError
@@ -699,49 +720,57 @@ Item {
                         showShutdown: lockScreenUi.showShutdown
                     }
 
-                    // Status Messages (Caps Lock, Errors, Fingerprint)
+                    // Status Messages (Caps Lock, Errors / Logs, Fingerprint)
                     Item {
+                        id: landscapeStatusContainer
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
-                        Layout.topMargin: 8 * lockScreenUi.centerScale
-                        implicitHeight: Math.max(capsText.implicitHeight, errorText.implicitHeight, fpHint.implicitHeight)
+                        Layout.preferredHeight: 64 * lockScreenUi.centerScale
+                        implicitHeight: Layout.preferredHeight
+                        Layout.topMargin: 2 * lockScreenUi.centerScale
+                        Layout.bottomMargin: 6 * lockScreenUi.centerScale
 
-                        Text {
-                            id: capsText
+                        Column {
+                            anchors.top: parent.top
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: capsLockState.locked && !lockScreenUi.authMessage
-                            text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
-                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
-                            color: lockScreenUi.clSurfaceVariantFg
-                            wrapMode: Text.WordWrap
-                            opacity: visible ? 1 : 0
-                            Behavior on opacity { NumberAnimation { duration: 300 } }
-                        }
+                            spacing: 4 * lockScreenUi.centerScale
 
-                        Text {
-                            id: errorText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: false
-                            text: lockScreenUi.authMessage
-                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
-                            color: lockScreenUi.clError
-                            wrapMode: Text.WordWrap
-                            scale: 0.7; opacity: 0
-                        }
+                            Text {
+                                id: capsText
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                visible: capsLockState.locked && !lockScreenUi.authMessage
+                                text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
+                                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                                color: lockScreenUi.clSurfaceVariantFg
+                                wrapMode: Text.WordWrap
+                                opacity: visible ? 1 : 0
+                                Behavior on opacity { NumberAnimation { duration: 300 } }
+                            }
 
-                        Text {
-                            id: fpHint
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: (errorText.visible ? errorText : (capsText.visible ? capsText : parent)).bottom
-                            anchors.topMargin: 6 * lockScreenUi.centerScale
-                            visible: lockScreenUi.hasFingerprint
-                            text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
-                            font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
-                            color: lockScreenUi.clSurfaceVariantFg
+                            Text {
+                                id: errorText
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                visible: false
+                                text: lockScreenUi.authMessage
+                                font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                                color: lockScreenUi.clError
+                                wrapMode: Text.WordWrap
+                                scale: 0.7; opacity: 0
+                            }
+
+                            Text {
+                                id: fpHint
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                visible: lockScreenUi.hasFingerprint
+                                text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
+                                font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
+                                color: lockScreenUi.clSurfaceVariantFg
+                                wrapMode: Text.WordWrap
+                            }
                         }
                     }
                 }
@@ -817,6 +846,7 @@ Item {
             visible: lockScreenUi.isPortrait
 
             Behavior on height {
+                enabled: lockScreenUi.ready
                 NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
             }
 
@@ -905,6 +935,8 @@ Item {
                     focus: lockScreenUi.isPortrait
                     isAuthenticating: lockScreenUi.isAuthenticating
                     graceLocked: authHandler.graceLocked
+                    lockoutActive: authHandler.lockoutActive
+                    lockoutText: authHandler.lockoutText
                     hasFingerprint: lockScreenUi.hasFingerprint
                     fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
                     clError: lockScreenUi.clError
@@ -936,67 +968,74 @@ Item {
                 }
 
                 // Status Messages (Caps Lock, Errors / Logs, Fingerprint)
-                Column {
+                Item {
                     id: portraitStatusContainer
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
-                    Layout.topMargin: 12 * lockScreenUi.centerScale
+                    Layout.preferredHeight: 64 * lockScreenUi.centerScale
+                    implicitHeight: Layout.preferredHeight
+                    Layout.topMargin: 4 * lockScreenUi.centerScale
                     Layout.bottomMargin: 8 * lockScreenUi.centerScale
-                    spacing: 6 * lockScreenUi.centerScale
 
-                    Text {
-                        id: portraitCapsText
+                    Column {
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: capsLockState.locked && !lockScreenUi.authMessage
-                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
-                        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
-                        color: lockScreenUi.clSurfaceVariantFg
-                        wrapMode: Text.WordWrap
-                        opacity: visible ? 1 : 0
-                        Behavior on opacity { NumberAnimation { duration: 300 } }
-                    }
+                        spacing: 4 * lockScreenUi.centerScale
 
-                    Text {
-                        id: portraitErrorText
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: false
-                        text: lockScreenUi.authMessage
-                        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
-                        color: lockScreenUi.clError
-                        wrapMode: Text.WordWrap
-                        scale: 0.7; opacity: 0
-                    }
+                        Text {
+                            id: portraitCapsText
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: capsLockState.locked && !lockScreenUi.authMessage
+                            text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
+                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                            color: lockScreenUi.clSurfaceVariantFg
+                            wrapMode: Text.WordWrap
+                            opacity: visible ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 300 } }
+                        }
 
-                    Text {
-                        id: portraitFpHint
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: lockScreenUi.hasFingerprint
-                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
-                        font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
-                        color: lockScreenUi.clSurfaceVariantFg
-                        wrapMode: Text.WordWrap
+                        Text {
+                            id: portraitErrorText
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: false
+                            text: lockScreenUi.authMessage
+                            font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                            color: lockScreenUi.clError
+                            wrapMode: Text.WordWrap
+                            scale: 0.7; opacity: 0
+                        }
+
+                        Text {
+                            id: portraitFpHint
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: lockScreenUi.hasFingerprint
+                            text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
+                            font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
+                            color: lockScreenUi.clSurfaceVariantFg
+                            wrapMode: Text.WordWrap
+                        }
                     }
                 }
             }
-        }
-    }
+            RowLayout {
+                anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: Kirigami.Units.smallSpacing }
+                spacing: Kirigami.Units.smallSpacing
 
-    RowLayout {
-        anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: Kirigami.Units.smallSpacing }
-        spacing: Kirigami.Units.smallSpacing
-
-        PlasmaComponents3.ToolButton {
-            icon.name: "input-keyboard"
-            PW.KeyboardLayoutSwitcher { id: kls; anchors.fill: parent; acceptedButtons: Qt.NoButton }
-            text: kls.layoutNames.longName
-            onClicked: kls.keyboardLayout.switchToNextLayout()
-            visible: kls.hasMultipleKeyboardLayouts
-            Layout.fillHeight: true
+                PlasmaComponents3.ToolButton {
+                    icon.name: "input-keyboard"
+                    PW.KeyboardLayoutSwitcher { id: kls; anchors.fill: parent; acceptedButtons: Qt.NoButton }
+                    text: kls.layoutNames.longName
+                    onClicked: kls.keyboardLayout.switchToNextLayout()
+                    visible: kls.hasMultipleKeyboardLayouts
+                    Layout.fillHeight: true
+                }
+                Item { Layout.fillWidth: true }
+            }
         }
-        Item { Layout.fillWidth: true }
     }
 
     Binding { target: root; property: "viewVisible"; value: true }

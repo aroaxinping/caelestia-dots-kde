@@ -19,7 +19,7 @@ Rectangle {
     property color clPrimary: "#c2c1ff"
 
     property real cardRadius: 26
-    radius: cardRadius * centerScale
+    radius: cardRadius
     color: clSurfaceContainer
 
     readonly property var _cc: weatherInfo && weatherInfo.current_condition && weatherInfo.current_condition.length > 0

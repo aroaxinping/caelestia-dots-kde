@@ -19,6 +19,8 @@ FocusScope {
     property bool graceLocked: false
     property bool hasFingerprint: false
     property bool fprintDisabledDueToTries: false
+    property bool lockoutActive: false
+    property string lockoutText: ""
 
     property color clSurfaceContainer: "#201f23"
     property color clSurfaceContainerHigh: "#2a292e"
@@ -62,7 +64,7 @@ FocusScope {
 
     TextMetrics {
         id: placeholderMetrics
-        text: root.isAuthenticating ? qsTr("Loading...") : (root.graceLocked ? qsTr("Please wait...") : qsTr("Enter your password"))
+        text: root.isAuthenticating ? qsTr("Loading...") : (root.graceLocked ? qsTr("Please wait...") : (root.lockoutActive && root.lockoutText.length > 0 ? root.lockoutText : qsTr("Enter your password")))
         font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading; weight: Font.Normal }
     }
 
@@ -93,6 +95,9 @@ FocusScope {
         anchors.fill: parent
         radius: height / 2
         color: root.clSurfaceContainer
+        border.color: root.lockoutActive ? root.clError : "transparent"
+        border.width: root.lockoutActive ? Math.max(1, Math.round(1.5 * root.centerScale)) : 0
+        Behavior on border.color { ColorAnimation { duration: 250 } }
 
         MouseArea {
             anchors.fill: parent
@@ -118,7 +123,7 @@ FocusScope {
                     text: root.fprintDisabledDueToTries ? "fingerprint_off" : (root.hasFingerprint ? "fingerprint" : "lock")
                     font.family: LockScreenConfig.fontIcon
                     font.pixelSize: LockScreenConfig.sizeLarge
-                    color: root.graceLocked ? root.clError : (root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg)
+                    color: (root.graceLocked || root.lockoutActive) ? root.clError : (root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg)
                     visible: !root.isAuthenticating
                     Behavior on color { ColorAnimation { duration: 250 } }
                 }
@@ -152,8 +157,9 @@ FocusScope {
                     anchors.centerIn: parent
                     text: placeholderMetrics.text
                     font: placeholderMetrics.font
-                    color: root.isAuthenticating ? root.clSecondary : root.clSurfaceVariantFg
+                    color: (root.lockoutActive && !root.isAuthenticating && !root.graceLocked) ? root.clError : (root.isAuthenticating ? root.clSecondary : root.clSurfaceVariantFg)
                     opacity: passwordBox.text.length > 0 ? 0 : 1
+                    Behavior on color { ColorAnimation { duration: 250 } }
                     Behavior on opacity { NumberAnimation { duration: 150 } }
                 }
 
@@ -257,7 +263,7 @@ FocusScope {
                 MaterialShape {
                     id: enterShape
                     anchors.fill: parent
-                    color: passwordBox.text.length > 0 ? (root.graceLocked ? root.clError : root.clPrimary) : root.clSurfaceContainerHigh
+                    color: passwordBox.text.length > 0 ? ((root.graceLocked || root.lockoutActive) ? root.clError : root.clPrimary) : root.clSurfaceContainerHigh
                     shape: passwordBox.text.length > 0 ? MaterialShape.Arrow : MaterialShape.Circle
                     rotation: 90
                     scale: passwordBox.text.length === 0 ? 1.0 : (enterMouse.pressed ? 0.6 : (enterMouse.containsMouse ? 0.8 : 0.7))
