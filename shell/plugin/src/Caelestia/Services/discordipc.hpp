@@ -45,6 +45,7 @@ private:
 
     QLocalSocket* m_socket;
     QTimer* m_reconnectTimer;
+    QTimer* m_connectTimeout;
     QString m_clientId;
     bool m_connected;
     QByteArray m_buffer;

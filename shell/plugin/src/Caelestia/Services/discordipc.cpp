@@ -18,7 +18,8 @@ enum class Opcode : int32_t {
 };
 
 DiscordIpc::DiscordIpc(QObject* parent)
-    : QObject(parent), m_socket(new QLocalSocket(this)), m_reconnectTimer(new QTimer(this)), m_connected(false)
+    : QObject(parent), m_socket(new QLocalSocket(this)), m_reconnectTimer(new QTimer(this)),
+      m_connectTimeout(new QTimer(this)), m_connected(false)
 {
     connect(m_socket, &QLocalSocket::connected, this, &DiscordIpc::onSocketConnected);
     connect(m_socket, &QLocalSocket::disconnected, this, &DiscordIpc::onSocketDisconnected);
@@ -31,6 +32,15 @@ DiscordIpc::DiscordIpc(QObject* parent)
 
     m_reconnectTimer->setInterval(5000);
     connect(m_reconnectTimer, &QTimer::timeout, this, &DiscordIpc::checkReconnect);
+
+    m_connectTimeout->setSingleShot(true);
+    m_connectTimeout->setInterval(1000);
+    connect(m_connectTimeout, &QTimer::timeout, this, [this]() {
+        if (m_socket->state() == QLocalSocket::ConnectingState) {
+            m_socket->abort();
+            tryNextPath();
+        }
+    });
 }
 
 DiscordIpc::~DiscordIpc() {
@@ -52,6 +62,8 @@ void DiscordIpc::connectIpc(const QString& clientId) {
 
 void DiscordIpc::disconnectIpc() {
     m_reconnectTimer->stop();
+    m_connectTimeout->stop();
+    m_pendingPaths.clear();
     m_clientId.clear();
     m_socket->abort();
     if (m_connected) {
@@ -82,20 +94,27 @@ void DiscordIpc::checkReconnect() {
 }
 
 void DiscordIpc::tryNextPath() {
+    if (m_clientId.isEmpty()) {
+        m_pendingPaths.clear();
+        return;
+    }
+
     while (!m_pendingPaths.isEmpty()) {
         const QString path = m_pendingPaths.takeFirst();
         if (QFile::exists(path)) {
             if (m_socket->state() != QLocalSocket::UnconnectedState)
                 m_socket->abort();
             m_socket->connectToServer(path);
+            m_connectTimeout->start();
             return;
         }
     }
-    // All candidates exhausted — timer retries in 5 s
 }
 
 void DiscordIpc::onSocketConnected() {
-    // Send Handshake
+    m_connectTimeout->stop();
+    m_pendingPaths.clear();
+
     QJsonObject payload;
     payload["v"] = 1;
     payload["client_id"] = m_clientId;
@@ -111,11 +130,9 @@ void DiscordIpc::onSocketDisconnected() {
 }
 
 void DiscordIpc::onError(QLocalSocket::LocalSocketError) {
+    m_connectTimeout->stop();
     emit errorOccurred(m_socket->errorString());
     onSocketDisconnected();
-    // If a reconnect scan is in progress, try the next candidate non-blocking.
-    // Use a queued invoke to avoid re-entering connectToServer() inside its own
-    // error signal, which can recurse on synchronous failures (e.g. ENOENT).
     if (!m_pendingPaths.isEmpty())
         QMetaObject::invokeMethod(this, &DiscordIpc::tryNextPath, Qt::QueuedConnection);
 }
