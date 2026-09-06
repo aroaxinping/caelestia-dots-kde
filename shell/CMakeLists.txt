@@ -1,17 +1,26 @@
 cmake_minimum_required(VERSION 3.19)
 
+# The release version lives in .github/version.env - the single source of
+# truth (read by CI and the installer/updater scripts). It is loaded here so a
+# bump is a one-line change to version.env; shell/CMakeLists.txt must never
+# carry its own copy of the release number. An explicit -DVERSION=... on the
+# configure line still wins for packaging.
 if(NOT DEFINED VERSION)
-    # 1. Prefer version.env — canonical source of truth, kept in sync by CI
     set(_VERSION_ENV "${CMAKE_SOURCE_DIR}/../.github/version.env")
     if(EXISTS "${_VERSION_ENV}")
         file(STRINGS "${_VERSION_ENV}" _VER_LINE REGEX "^VERSION=")
         if(_VER_LINE)
             string(REGEX REPLACE "^VERSION=" "" VERSION "${_VER_LINE}")
         endif()
+        # file(STRINGS) is not tracked as a configure input, so re-run
+        # configure whenever version.env changes. Without this an existing
+        # build dir would keep baking the previous version after a bump.
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_VERSION_ENV}")
     endif()
 
-    # 2. Fallback: git describe (nearest tag)
-    if(NOT VERSION OR "${VERSION}" STREQUAL "")
+    # Fallback for a tree without version.env (e.g. a standalone shell
+    # checkout): the nearest git tag. No maintenance needed.
+    if(NOT VERSION OR "${VERSION}" STREQUAL "" OR "${VERSION}" STREQUAL "rolling")
         execute_process(COMMAND git describe --tags --match "v*" --abbrev=0
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             OUTPUT_VARIABLE VERSION
@@ -20,10 +29,10 @@ if(NOT DEFINED VERSION)
         )
     endif()
 
-    # Last resort hardcoded
-    if("${VERSION}" STREQUAL "" OR "${VERSION}" STREQUAL "rolling")
-        set(VERSION "2.3.2")
-    endif()
+    # Nothing left to derive from (no version.env, no git): keep VERSION empty
+    # instead of hardcoding a release number that would drift. Consumers
+    # degrade cleanly (CUtils.version reports an unknown version).
+    string(STRIP "${VERSION}" VERSION)
 endif()
 
 if(NOT DEFINED GIT_REVISION)
@@ -61,7 +70,14 @@ endif()
 string(REGEX REPLACE "^v" "" VERSION "${VERSION}")
 string(REGEX REPLACE "^v" "" DISPLAY_VERSION "${DISPLAY_VERSION}")
 
-project(caelestia-shell VERSION ${VERSION} LANGUAGES C CXX)
+# Only hand VERSION to project() when we actually derived one. An empty
+# version is valid here (consumers report an unknown version) but is not a
+# legal project() VERSION argument.
+if(VERSION)
+    project(caelestia-shell VERSION ${VERSION} LANGUAGES C CXX)
+else()
+    project(caelestia-shell LANGUAGES C CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
