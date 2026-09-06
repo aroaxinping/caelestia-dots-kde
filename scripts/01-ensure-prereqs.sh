@@ -42,7 +42,10 @@ if [[ "$BASE_DISTRO" == "arch" ]]; then
         info "ccache not found, installing..."
         sudo pacman -S --needed --noconfirm ccache
     fi
-    if [[ -f /etc/makepkg.conf ]]; then
+    if [[ -f /etc/makepkg.conf ]] && grep -q '!ccache' /etc/makepkg.conf; then
+        info "Enabling ccache in /etc/makepkg.conf (system-wide makepkg setting)..."
+        mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/caelestia"
+        touch "${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/ccache-enabled"
         sudo sed -i 's/!ccache/ccache/' /etc/makepkg.conf
     fi
     ok "makepkg ccache configured."

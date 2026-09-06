@@ -16,6 +16,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/log.sh"
 
 BUNDLE_DIR="${BUNDLE_DIR:?BUNDLE_DIR not set}"
 
+# True when a Darkly KWin decoration is actually installed and loadable.
+darkly_decoration_installed() {
+    local plugin_dir
+    plugin_dir="$(qtpaths6 --plugin-dir 2>/dev/null || true)"
+    [[ -n "$plugin_dir" && -f "$plugin_dir/org.kde.kdecoration3/org.kde.darkly.so" ]] ||
+    [[ -f /usr/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so ]] ||
+    [[ -f /usr/local/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so ]] ||
+    [[ -f "${HOME}/.local/lib/qt6/plugins/org.kde.kdecoration3/org.kde.darkly.so" ]]
+}
+
 echo
 echo ""
 info "Applying KDE settings"
@@ -39,14 +49,21 @@ if [[ "${APPLY_DARKLY:-true}" == "true" ]]; then
     kwriteconfig6 --file kdeglobals --group "KDE" --key "widgetStyle" "darkly" 2>/dev/null || true
     kwriteconfig6 --file kdeglobals --group "General" --key "ColorScheme" "Darkly" 2>/dev/null || true
 
-    #  Darkly: Window decoration 
+    #  Darkly: Window decoration
     info "Applying Darkly window decoration..."
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "library" "org.kde.darkly" 2>/dev/null || \
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "library" "org.kde.breeze" 2>/dev/null || true
-    kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
-        --key "theme" "@darkly" 2>/dev/null || true
+    if darkly_decoration_installed; then
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "library" "org.kde.darkly" 2>/dev/null || true
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "theme" "@darkly" 2>/dev/null || true
+    else
+        # kwriteconfig6 can't tell whether a decoration is loadable, so check
+        # ourselves and fall back to Breeze when Darkly isn't installed.
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "library" "org.kde.breeze" 2>/dev/null || true
+        kwriteconfig6 --file kwinrc --group "org.kde.kdecoration2" \
+            --key "theme" "Breeze" 2>/dev/null || true
+    fi
 
 else
     skip "Skipping Darkly theme"
@@ -78,7 +95,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/bin/bash -c "wl-paste --type text --watch cliphist store & wl-paste --type image --watch cliphist store & wl-clip-persist --clipboard regular & wait"
+ExecStart=/bin/bash -c 'command -v wl-paste >/dev/null 2>&1 || { echo "missing: wl-paste" >&2; exit 1; }; command -v cliphist >/dev/null 2>&1 || { echo "missing: cliphist" >&2; exit 1; }; command -v wl-clip-persist >/dev/null 2>&1 || { echo "missing: wl-clip-persist" >&2; exit 1; }; wl-paste --type text --watch cliphist store & wl-paste --type image --watch cliphist store & wl-clip-persist --clipboard regular & wait -n'
 Restart=always
 RestartSec=3
 

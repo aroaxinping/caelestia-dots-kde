@@ -8,6 +8,7 @@ int g_term_width = 80;
 int g_term_height = 24;
 std::string g_base_distro = "unknown";
 std::string g_bundle_dir = ".";
+std::string g_sudo_bin_dir;
 
 Config g_config;
 bool g_logout = false;
