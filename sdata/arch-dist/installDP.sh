@@ -3,8 +3,8 @@
 
 set -uo pipefail
 
-log()  { echo -e "\033[0;36m[INFO]\033[0m $*"; }
-err()  { echo -e "\033[0;31m[ERR]\033[0m  $*"; }
+log()  { printf '  [INFO]  %s\n' "$*"; }
+err()  { printf '  [ERR]   %s\n' "$*" >&2; }
 
 log "Installing Arch packages..."
 
@@ -29,9 +29,9 @@ fi
 PACKAGE_GROUP="${PACKAGE_GROUP:-all}"
 
 CORE_PACKAGES=(
-    cmake ninja ccache
+    cmake ninja ccache qt6-tools
     wl-clipboard cliphist wl-clip-persist inotify-tools app2unit wireplumber trash-cli jq aubio lm_sensors
-    libpipewire glibc qt6-declarative gcc-libs qt6-base qt6-declarative qt6-wayland libqalculate kpipewire kglobalaccel kglobalacceld libsecret
+    libpipewire glibc qt6-declarative gcc-libs qt6-base qt6-declarative qt6-wayland libqalculate kpipewire kglobalaccel kglobalacceld libsecret ksshaskpass
     networkmanager-qt vulkan-headers
     ffmpeg
 )
@@ -76,55 +76,26 @@ if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
     fi
 fi
 
-# libcava and darkly are the last packages that would compile from source.
-# They are prebuilt by CI into a binary repo hosted on GitHub Releases (see
-# .github/workflows/prebuilt-artifacts.yml); fall back to AUR source builds
-# when the repo is unreachable or a package is missing from it.
-PREBUILT_PKGS=()
+# libcava and darkly are installed from the AUR. Darkly is published as the
+# prebuilt darkly-bin package, so it is never compiled on the machine; libcava
+# has no -bin package and compiles from source.
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "core" ]]; then
-    PREBUILT_PKGS+=(libcava)
+    PACKAGES+=(libcava)
 fi
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
     if [[ "$INSTALL_DARKLY" == "true" ]]; then
-        PREBUILT_PKGS+=(darkly)
+        PACKAGES+=(darkly-bin)
     else
         log "Skipping Darkly package installation by user choice."
     fi
 fi
 
-BIN_REPO_NAME="caelestia-bin"
-BIN_REPO_URL="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/caelestia-bin-repo"
-
-install_from_binary_repo() {
-    if ! grep -q "^\[$BIN_REPO_NAME\]" /etc/pacman.conf 2>/dev/null; then
-        {
-            echo ""
-            echo "[$BIN_REPO_NAME]"
-            echo "SigLevel = Optional"
-            echo "Server = $BIN_REPO_URL"
-            echo ""
-        } | sudo tee -a /etc/pacman.conf >/dev/null
-    fi
-    sudo pacman -Sy --noconfirm >/dev/null 2>&1
-}
-
-if [[ ${#PREBUILT_PKGS[@]} -gt 0 ]] && [[ -z "${CAELESTIA_SKIP_BINARY_REPO:-}" ]]; then
-    if install_from_binary_repo; then
-        for pkg in "${PREBUILT_PKGS[@]}"; do
-            if sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1; then
-                log "Installed $pkg from the prebuilt repo."
-            else
-                log "Prebuilt $pkg unavailable; will build from the AUR."
-                PACKAGES+=("$pkg")
-            fi
-        done
-    else
-        log "Prebuilt repo unreachable; building from the AUR instead."
-        PACKAGES+=("${PREBUILT_PKGS[@]}")
-        sudo sed -i "/^\[$BIN_REPO_NAME\]/,/^$/d" /etc/pacman.conf
-    fi
-elif [[ ${#PREBUILT_PKGS[@]} -gt 0 ]]; then
-    PACKAGES+=("${PREBUILT_PKGS[@]}")
+# Older installs registered a caelestia-bin pacman repo that pointed at the
+# now-deleted caelestia-bin-repo GitHub release. Drop any stale entry so
+# `pacman -Sy` does not fail against the dead Server URL.
+if grep -q '^\[caelestia-bin\]' /etc/pacman.conf 2>/dev/null; then
+    log "Removing stale caelestia-bin repo entry from pacman.conf..."
+    sudo sed -i '/^\[caelestia-bin\]/,/^$/d' /etc/pacman.conf
 fi
 
 log "Installing packages (group: $PACKAGE_GROUP)..."
@@ -137,8 +108,6 @@ FAILED_PKGS=()
 # select the build backend.
 SOURCE_BUILD_REPOS=(
     # package            repo
-    "darkly              https://github.com/vinceliuice/Darkly"
-    "libcava             https://github.com/LukashonakV/cava"
     "ttf-rubik-vf        https://github.com/googlefonts/rubik"
     "app2unit            https://github.com/Vladimir-csp/app2unit"
     "python-materialyoucolor https://github.com/gregwym/MaterialYouColor.py"
@@ -244,6 +213,25 @@ if [ ${#FAILED_PKGS[@]} -ne 0 ]; then
         err "  - $pkg"
         echo "$pkg" >> "${XDG_CACHE_HOME:-$HOME/.cache}/caelestia-kde/failed_packages.txt"
     done
+fi
+
+if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
+    if [[ "$INSTALL_DARKLY" == "true" ]]; then
+        log "Installing Darkly GTK theme..."
+        yay -S --needed --noconfirm sassc >/dev/null 2>&1 || sudo pacman -S --needed --noconfirm sassc >/dev/null 2>&1 || true
+        tmpdir="$(mktemp -d)"
+        if git clone --depth 1 https://github.com/wrymt/darkly-gtk "$tmpdir"; then
+            (
+                cd "$tmpdir" || exit 1
+                ./install.sh -l || err "Failed to install Darkly GTK theme."
+            )
+        else
+            err "Failed to clone Darkly GTK theme."
+        fi
+        rm -rf "$tmpdir"
+    else
+        log "Skipping Darkly GTK theme by user choice."
+    fi
 fi
 
 if command -v xdg-user-dirs-update >/dev/null 2>&1; then
