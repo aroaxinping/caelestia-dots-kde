@@ -23,8 +23,10 @@
 #include <QHash>
 #include <QHostAddress>
 #include <QJSEngine>
+#include <QList>
 #include <QLoggingCategory>
 #include <QSet>
+#include <QSharedPointer>
 #include <algorithm>
 
 Q_LOGGING_CATEGORY(lcNmQt, "caelestia.services.nmqt", QtInfoMsg)
@@ -442,6 +444,9 @@ void NmQt::disconnectFromNetwork() {
 }
 
 void NmQt::forgetNetwork(const QString& ssid, QJSValue callback) {
+    // Forget every saved profile with this SSID, not just the first one NM
+    // enumerates. Duplicate profiles happen after a router password change.
+    QList<NetworkManager::Connection::Ptr> matches;
     const auto connPaths = NetworkManager::listConnections();
     for (const auto& conn : connPaths) {
         if (!conn || !conn->settings())
@@ -452,21 +457,27 @@ void NmQt::forgetNetwork(const QString& ssid, QJSValue callback) {
             continue;
 
         auto* wirelessSetting = static_cast<NetworkManager::WirelessSetting*>(ws.data());
-        if (wirelessSetting->ssid() == ssid) {
-            QDBusPendingReply<> reply = conn->remove();
-            auto* watcher = new QDBusPendingCallWatcher(reply, this);
-            connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, callback](QDBusPendingCallWatcher* w) {
-                w->deleteLater();
-                QDBusPendingReply<> r = *w;
-                invokeCallback(callback, !r.isError(), r.isError() ? QString() : QStringLiteral("Deleted"),
-                    r.isError() ? r.error().message() : QString());
-                refreshSavedConnections();
-            });
-            return;
-        }
+        if (wirelessSetting->ssid() == ssid)
+            matches.append(conn);
     }
 
-    invokeCallback(callback, false, {}, "No connection found for SSID", -1);
+    if (matches.isEmpty()) {
+        invokeCallback(callback, false, {}, "No connection found for SSID", -1);
+        return;
+    }
+
+    auto remaining = QSharedPointer<int>(new int(matches.size()));
+    for (const auto& conn : matches) {
+        QDBusPendingReply<> reply = conn->remove();
+        auto* watcher = new QDBusPendingCallWatcher(reply, this);
+        connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, callback, remaining](QDBusPendingCallWatcher* w) {
+            w->deleteLater();
+            if (--*remaining > 0)
+                return;
+            refreshSavedConnections();
+            invokeCallback(callback, true, QStringLiteral("Deleted"));
+        });
+    }
 }
 
 void NmQt::enableWifi(bool enabled, QJSValue callback) {
