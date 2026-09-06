@@ -79,6 +79,11 @@ void setup_sudo_environment(const string& pw) {
     // Also export SUDO_PASS for some scripts (like 09-system-tweaks.sh) that might rely on it
     setenv("SUDO_PASS", pw.c_str(), 1);
 
+    // Reap an inhibitor left by a killed earlier run before starting a fresh
+    // one; the shell EXIT trap can't run on SIGKILL or a hard crash.
+    system("if [ -f /tmp/caelestia_inhibit.pid ]; then kill -9 \"$(cat /tmp/caelestia_inhibit.pid)\" 2>/dev/null; fi");
+    system("if [ -f /tmp/caelestia_kde_inhibit.cookie ]; then qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.UnInhibit \"$(cat /tmp/caelestia_kde_inhibit.cookie)\" 2>/dev/null; fi");
+
     // Start background keep-awake for display (sleep inhibitor)
     system("systemd-inhibit --what=idle:sleep --who=\"Caelestia Installer\" --why=\"Installation in progress\" bash -c 'while :; do sleep 600; done' >/dev/null 2>&1 & echo $! > /tmp/caelestia_inhibit.pid");
     system("qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.Inhibit \"Caelestia Installer\" \"Installation in progress\" > /tmp/caelestia_kde_inhibit.cookie 2>/dev/null");
