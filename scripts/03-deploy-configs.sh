@@ -223,24 +223,4 @@ fi
 update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
 ok "Bridge files deployed."
 
-if [[ "${APPLY_LOCKSCREEN:-true}" != "false" ]]; then
-    info "Configuring KDE Lock Screen to use Caelestia..."
-    if command -v kwriteconfig6 >/dev/null 2>&1; then
-        # Clean up old plasma-wallpaper-application config
-        kwriteconfig6 --file kscreenlockerrc --group Greeter --key WallpaperPlugin "org.kde.image" 2>/dev/null || true
-        kwriteconfig6 --file kscreenlockerrc --group Greeter --group Wallpaper --group net.dosowisko.PlasmaApplicationWallpaper --group General --key command --delete 2>/dev/null || true
-        kwriteconfig6 --file kscreenlockerrc --group Greeter --group Wallpaper --group net.dosowisko.PlasmaApplicationWallpaper --group General --key fps --delete 2>/dev/null || true
-        kwriteconfig6 --file kscreenlockerrc --group Greeter --group LnF --group General --key alwaysShowClock --delete 2>/dev/null || true
-        kwriteconfig6 --file kscreenlockerrc --group Greeter --group LnF --group General --key showMediaControls --delete 2>/dev/null || true
-        kwriteconfig6 --file kscreenlockerrc --group "Greeter" --key "Theme" --delete 2>/dev/null || true
-        # Set Caelestia shell package
-        kwriteconfig6 --file plasmashellrc --group "Shell" --key "ShellPackage" "caelestia.desktop" 2>/dev/null || true
-        ok "KDE Lock Screen configured to use Caelestia."
-    else
-        warn "KDE config tools not found. Skipping KDE Lock Screen configuration."
-    fi
-else
-    skip "KDE Lock Screen configuration disabled by user choice."
-fi
-
 ok "Config deployment complete."
