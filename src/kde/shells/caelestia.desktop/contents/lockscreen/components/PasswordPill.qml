@@ -62,7 +62,7 @@ FocusScope {
 
     TextMetrics {
         id: placeholderMetrics
-        text: root.isAuthenticating ? qsTr("Loading...") : qsTr("Enter your password")
+        text: root.isAuthenticating ? qsTr("Loading...") : (root.graceLocked ? qsTr("Please wait...") : qsTr("Enter your password"))
         font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontHeading; weight: Font.Normal }
     }
 
@@ -118,8 +118,9 @@ FocusScope {
                     text: root.fprintDisabledDueToTries ? "fingerprint_off" : (root.hasFingerprint ? "fingerprint" : "lock")
                     font.family: LockScreenConfig.fontIcon
                     font.pixelSize: LockScreenConfig.sizeLarge
-                    color: root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg
+                    color: root.graceLocked ? root.clError : (root.fprintDisabledDueToTries ? root.clError : root.clSurfaceVariantFg)
                     visible: !root.isAuthenticating
+                    Behavior on color { ColorAnimation { duration: 250 } }
                 }
 
                 Item {
@@ -241,7 +242,7 @@ FocusScope {
                         }
                     }
 
-                    onAccepted: root.loginRequested(passwordBox.text)
+                    onAccepted: if (!root.graceLocked && !root.isAuthenticating) root.loginRequested(passwordBox.text)
                 }
                 Binding { target: PasswordSync; property: "password"; value: passwordBox.text }
             }
@@ -256,7 +257,7 @@ FocusScope {
                 MaterialShape {
                     id: enterShape
                     anchors.fill: parent
-                    color: passwordBox.text.length > 0 ? root.clPrimary : root.clSurfaceContainerHigh
+                    color: passwordBox.text.length > 0 ? (root.graceLocked ? root.clError : root.clPrimary) : root.clSurfaceContainerHigh
                     shape: passwordBox.text.length > 0 ? MaterialShape.Arrow : MaterialShape.Circle
                     rotation: 90
                     scale: passwordBox.text.length === 0 ? 1.0 : (enterMouse.pressed ? 0.6 : (enterMouse.containsMouse ? 0.8 : 0.7))
@@ -268,8 +269,8 @@ FocusScope {
                         id: enterMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: passwordBox.text.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: if (passwordBox.text.length > 0 && !root.isAuthenticating) root.loginRequested(passwordBox.text)
+                        cursorShape: (passwordBox.text.length > 0 && !root.graceLocked && !root.isAuthenticating) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: if (passwordBox.text.length > 0 && !root.isAuthenticating && !root.graceLocked) root.loginRequested(passwordBox.text)
                     }
                 }
 

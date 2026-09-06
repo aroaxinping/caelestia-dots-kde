@@ -83,7 +83,8 @@ Item {
 
     property var clTerms: []
 
-    property bool isAuthenticating: false
+    readonly property bool isAuthenticating: authHandler.isAuthenticating
+    readonly property var activePasswordPill: isPortrait ? portraitPasswordPill : passwordPill
     property string authMessage: ""
 
     // XHR file:// is blocked inside kscreenlocker, so read scheme.json and
@@ -361,64 +362,55 @@ Item {
         onTriggered: lockScreenUi.greetingInfo = lockScreenUi.getGreeting()
     }
 
-    function startLogin(pass) {
-        var p = pass !== undefined ? pass : (passwordPill ? passwordPill.text : "");
-        if (!p || p.length === 0) return;
-        isAuthenticating = true;
-        authenticator.respond(p);
-    }
-
-    Connections {
-        target: authenticator
-        function onFailed(kind) {
-            if (kind !== 0) {
-                if (kind & ScreenLocker.Authenticator.Fingerprint) {
-                    lockScreenUi.fprintTries++;
-                    if (lockScreenUi.fprintTries >= lockScreenUi.maxFprintTries) {
-                        lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
-                            "@info:status", "Maximum fingerprint attempts reached. Please use password.");
-                        msgAppearAnim.start();
-                        notificationRemoveTimer.restart();
-                    }
-                }
-                return;
-            }
-            lockScreenUi.isAuthenticating = false;
-            lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
-                "@info:status", "Unlocking failed");
-            graceLockTimer.restart();
-            notificationRemoveTimer.restart();
-            if (passwordPill) passwordPill.shake();
-            msgAppearAnim.start();
-        }
-        function onNoninteractiveError(kind, auth) {
-            if (kind & ScreenLocker.Authenticator.Fingerprint) {
-                lockScreenUi.fprintTries++;
-                if (lockScreenUi.fprintTries >= lockScreenUi.maxFprintTries) {
-                    lockScreenUi.authMessage = i18ndc("plasma_shell_org.kde.plasma.desktop",
-                        "@info:status", "Maximum fingerprint attempts reached. Please use password.");
-                } else if (auth && auth.errorMessage) {
-                    lockScreenUi.authMessage = auth.errorMessage;
-                }
-                msgAppearAnim.start();
-                notificationRemoveTimer.restart();
-            }
-        }
-        function onSucceeded() {
+    AuthHandler {
+        id: authHandler
+        authenticatorTarget: (typeof authenticator !== "undefined") ? authenticator : null
+        fprintTries: lockScreenUi.fprintTries
+        onShakeRequested: if (activePasswordPill) activePasswordPill.shake()
+        onFocusSecretRequested: if (activePasswordPill) activePasswordPill.forceActiveFocus()
+        onSucceeded: {
             lockScreenUi.fprintTries = 0;
             Qt.quit();
         }
-        function onInfoMessageChanged() {
-            lockScreenUi.authMessage = authenticator.infoMessage;
-            if (lockScreenUi.authMessage) msgAppearAnim.start();
+        onMessageChanged: msg => {
+            if (msg) {
+                msgExitAnim.stop();
+                var wasEmpty = !lockScreenUi.authMessage;
+                lockScreenUi.authMessage = msg;
+                var isVisible = lockScreenUi.isPortrait ? (portraitErrorText && portraitErrorText.visible) : (errorText && errorText.visible);
+                if (wasEmpty || !isVisible) {
+                    msgAppearAnim.restart();
+                }
+            } else {
+                msgAppearAnim.stop();
+                msgFlashAnim.stop();
+                msgExitAnim.start();
+            }
         }
-        function onErrorMessageChanged() {
-            lockScreenUi.authMessage = authenticator.errorMessage;
-            if (lockScreenUi.authMessage) msgAppearAnim.start();
+        onClearPasswordRequested: {
+            if (passwordPill) passwordPill.clearPassword();
+            if (portraitPasswordPill) portraitPasswordPill.clearPassword();
+            if (typeof root !== "undefined" && typeof root.clearPassword === "function") root.clearPassword();
         }
-        function onPromptForSecretChanged() {
-            if (passwordPill) passwordPill.forceActiveFocus();
+        onNotificationRepeated: {
+            msgExitAnim.stop();
+            msgFlashAnim.restart();
+            if (activePasswordPill) activePasswordPill.shake();
+            if (typeof root !== "undefined" && typeof root.notificationRepeated === "function") root.notificationRepeated();
         }
+    }
+
+    function handleMessage(msg) { authHandler.handleMessage(msg); }
+    function startLogin(pass) {
+        msgExitAnim.stop();
+        msgAppearAnim.stop();
+        msgFlashAnim.stop();
+        errorText.visible = false;
+        portraitErrorText.visible = false;
+        errorText.opacity = 0;
+        portraitErrorText.opacity = 0;
+        lockScreenUi.authMessage = "";
+        authHandler.startLogin(pass);
     }
 
     SessionManagement { id: sessionManagement }
@@ -428,38 +420,52 @@ Item {
         target: root
         function onClearPassword() {
             if (passwordPill) passwordPill.clearPassword();
+            if (portraitPasswordPill) portraitPasswordPill.clearPassword();
         }
-    }
-
-    Timer { id: notificationRemoveTimer; interval: 3000; onTriggered: msgExitAnim.start() }
-    Timer {
-        id: graceLockTimer; interval: 3000
-        onTriggered: { root.clearPassword(); authenticator.startAuthenticating(); }
     }
 
     // Error text: appear → flash → exit
     SequentialAnimation {
         id: msgAppearAnim
         PropertyAction { target: errorText; property: "visible"; value: true }
+        PropertyAction { target: portraitErrorText; property: "visible"; value: true }
         ParallelAnimation {
             NumberAnimation { target: errorText; property: "scale"; from: 0.7; to: 1; duration: 300; easing.type: Easing.OutCubic }
             NumberAnimation { target: errorText; property: "opacity"; from: 0; to: 1; duration: 300; easing.type: Easing.OutCubic }
+            NumberAnimation { target: portraitErrorText; property: "scale"; from: 0.7; to: 1; duration: 300; easing.type: Easing.OutCubic }
+            NumberAnimation { target: portraitErrorText; property: "opacity"; from: 0; to: 1; duration: 300; easing.type: Easing.OutCubic }
         }
         onFinished: msgFlashAnim.start()
     }
     SequentialAnimation {
         id: msgFlashAnim; loops: 2
-        NumberAnimation { target: errorText; property: "opacity"; to: 0.3; duration: 150 }
-        NumberAnimation { target: errorText; property: "opacity"; to: 1; duration: 150 }
+        ParallelAnimation {
+            SequentialAnimation {
+                NumberAnimation { target: errorText; property: "opacity"; to: 0.3; duration: 150 }
+                NumberAnimation { target: errorText; property: "opacity"; to: 1; duration: 150 }
+            }
+            SequentialAnimation {
+                NumberAnimation { target: portraitErrorText; property: "opacity"; to: 0.3; duration: 150 }
+                NumberAnimation { target: portraitErrorText; property: "opacity"; to: 1; duration: 150 }
+            }
+        }
     }
     SequentialAnimation {
         id: msgExitAnim
         ParallelAnimation {
             NumberAnimation { target: errorText; property: "scale"; to: 0.7; duration: 400; easing.type: Easing.InOutQuad }
             NumberAnimation { target: errorText; property: "opacity"; to: 0; duration: 400; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: portraitErrorText; property: "scale"; to: 0.7; duration: 400; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: portraitErrorText; property: "opacity"; to: 0; duration: 400; easing.type: Easing.InOutQuad }
         }
         PropertyAction { target: errorText; property: "visible"; value: false }
-        onFinished: lockScreenUi.authMessage = ""
+        PropertyAction { target: portraitErrorText; property: "visible"; value: false }
+        onFinished: {
+            lockScreenUi.authMessage = "";
+            if (typeof root !== "undefined" && typeof root.notification !== "undefined") {
+                root.notification = "";
+            }
+        }
     }
 
     FastBlur {
@@ -496,7 +502,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.ArrowCursor
             onPressed: mouse => {
-                if (passwordPill) passwordPill.forceActiveFocus();
+                if (activePasswordPill) activePasswordPill.forceActiveFocus();
                 mouse.accepted = false;
             }
         }
@@ -507,14 +513,14 @@ Item {
                 interval: 300; repeat: true; running: true
                 property int n: 0
                 onTriggered: {
-                    if (passwordPill) passwordPill.forceActiveFocus();
+                    if (activePasswordPill) activePasswordPill.forceActiveFocus();
                     if (++n >= 10) repeat = false;
                 }
             }
         }
 
         Keys.onPressed: event => {
-            if (passwordPill) passwordPill.forceActiveFocus();
+            if (activePasswordPill) activePasswordPill.forceActiveFocus();
             event.accepted = false;
         }
         Keys.onEscapePressed: root.clearPassword()
@@ -661,8 +667,9 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         centerScale: lockScreenUi.centerScale
                         centerWidth: lockScreenUi.centerWidth
+                        focus: !lockScreenUi.isPortrait
                         isAuthenticating: lockScreenUi.isAuthenticating
-                        graceLocked: Boolean(authenticator.graceLocked)
+                        graceLocked: authHandler.graceLocked
                         hasFingerprint: lockScreenUi.hasFingerprint
                         fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
                         clError: lockScreenUi.clError
@@ -718,6 +725,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
+                            visible: false
                             text: lockScreenUi.authMessage
                             font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
                             color: lockScreenUi.clError
@@ -805,8 +813,12 @@ Item {
             id: portraitContent
             anchors.centerIn: parent
             width: Math.min(parent.width * 0.9, lockScreenUi.lockShort)
-            height: portraitLayout.implicitHeight + 48 * lockScreenUi.centerScale
+            height: portraitLayout.implicitHeight + 64 * lockScreenUi.centerScale
             visible: lockScreenUi.isPortrait
+
+            Behavior on height {
+                NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+            }
 
             Item {
                 anchors.fill: portraitBg
@@ -840,149 +852,136 @@ Item {
             ColumnLayout {
                 id: portraitLayout
                 anchors.centerIn: parent
-                width: parent.width - 32 * lockScreenUi.centerScale
+                width: parent.width - 48 * lockScreenUi.centerScale
                 spacing: 20 * lockScreenUi.centerScale
 
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                spacing: 24 * lockScreenUi.centerScale
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    spacing: 24 * lockScreenUi.centerScale
 
-                ProfileAvatar {
-                    Layout.preferredWidth: lockScreenUi.centerWidth * 0.4
-                    Layout.preferredHeight: Layout.preferredWidth
-                    centerScale: lockScreenUi.centerScale
-                    profileShape: lockScreenUi.profilePicShape
-                    rotateShape: lockScreenUi.rotateProfilePic
-                    userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
-                    userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
-                    clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                    clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
+                    ProfileAvatar {
+                        Layout.preferredWidth: lockScreenUi.centerWidth * 0.4
+                        Layout.preferredHeight: Layout.preferredWidth
+                        centerScale: lockScreenUi.centerScale
+                        profileShape: lockScreenUi.profilePicShape
+                        rotateShape: lockScreenUi.rotateProfilePic
+                        userImage: (typeof kscreenlocker_userImage !== "undefined" && kscreenlocker_userImage) ? kscreenlocker_userImage.toString() : ""
+                        userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : ""
+                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                        clSurfaceContainerHighest: lockScreenUi.clSurfaceContainerHighest
+                    }
+
+                    ClockWidget {
+                        Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                        use12h: lockScreenUi.use12h
+                        centerScale: lockScreenUi.centerScale
+                        clPrimary: lockScreenUi.clPrimary
+                        clSecondary: lockScreenUi.clSecondary
+                        clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                        clSurfaceFg: lockScreenUi.clSurfaceFg
+                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                    }
                 }
 
-                ClockWidget {
-                    Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-                    use12h: lockScreenUi.use12h
+                GreetingPill {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 8 * lockScreenUi.centerScale
                     centerScale: lockScreenUi.centerScale
+                    greetingInfo: lockScreenUi.greetingInfo
+                    userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
+                    pillColor: lockScreenUi.clCardBg
+                    clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
                     clPrimary: lockScreenUi.clPrimary
-                    clSecondary: lockScreenUi.clSecondary
-                    clSurfaceContainerHigh: lockScreenUi.clSurfaceContainerHigh
+                }
+
+                PasswordPill {
+                    id: portraitPasswordPill
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 8 * lockScreenUi.centerScale
+                    Layout.bottomMargin: 8 * lockScreenUi.centerScale
+                    centerScale: lockScreenUi.centerScale
+                    centerWidth: lockScreenUi.centerWidth
+                    focus: lockScreenUi.isPortrait
+                    isAuthenticating: lockScreenUi.isAuthenticating
+                    graceLocked: authHandler.graceLocked
+                    hasFingerprint: lockScreenUi.hasFingerprint
+                    fprintDisabledDueToTries: lockScreenUi.fprintDisabledDueToTries
+                    clError: lockScreenUi.clError
+                    clSurfaceContainer: lockScreenUi.clCardBg
+                    clSurfaceContainerHigh: lockScreenUi.clCardBgHigh
                     clSurfaceFg: lockScreenUi.clSurfaceFg
                     clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                    clPrimary: lockScreenUi.clPrimary
+                    clPrimaryFg: lockScreenUi.clPrimaryFg
+                    onLoginRequested: pass => lockScreenUi.startLogin(pass)
                 }
-            }
 
-            GreetingPill {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.bottomMargin: 16 * lockScreenUi.centerScale
-                centerScale: lockScreenUi.centerScale
-                greetingInfo: lockScreenUi.greetingInfo
-                userName: typeof kscreenlocker_userName !== "undefined" ? kscreenlocker_userName : "User"
-                pillColor: lockScreenUi.clCardBg
-                clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                clPrimary: lockScreenUi.clPrimary
-            }
+                Session {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 4 * lockScreenUi.centerScale
+                    Layout.bottomMargin: 4 * lockScreenUi.centerScale
+                    centerScale: lockScreenUi.centerScale
+                    isAuthenticating: lockScreenUi.isAuthenticating
+                    clPrimary: lockScreenUi.clPrimary
+                    clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
+                    sessionManagement: sessionManagement
+                    customIcons: lockScreenUi.sessionIcons
+                    showSleep: lockScreenUi.showSleep
+                    showHibernate: lockScreenUi.showHibernate
+                    showSwitchUser: lockScreenUi.showSwitchUser
+                    showLogout: lockScreenUi.showLogout
+                    showReboot: lockScreenUi.showReboot
+                    showShutdown: lockScreenUi.showShutdown
+                }
 
-            Item {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: 16 * lockScreenUi.centerScale
-                property real pillWidth: passwordPill && passwordPill.text.length > 0
-                    ? lockScreenUi.centerWidth * 0.8
-                    : lockScreenUi.centerWidth * 0.55
-                implicitWidth: pillWidth
-                implicitHeight: 56 * lockScreenUi.centerScale
+                // Status Messages (Caps Lock, Errors / Logs, Fingerprint)
+                Column {
+                    id: portraitStatusContainer
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    Layout.topMargin: 12 * lockScreenUi.centerScale
+                    Layout.bottomMargin: 8 * lockScreenUi.centerScale
+                    spacing: 6 * lockScreenUi.centerScale
 
-                Rectangle {
-                    width: parent.pillWidth; height: parent.implicitHeight
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    radius: height / 2
-                    color: lockScreenUi.clCardBg
-                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.InOutCubic } }
-
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.IBeamCursor
-                        onClicked: if (passwordPill) passwordPill.forceActiveFocus()
+                    Text {
+                        id: portraitCapsText
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: capsLockState.locked && !lockScreenUi.authMessage
+                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on")
+                        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                        color: lockScreenUi.clSurfaceVariantFg
+                        wrapMode: Text.WordWrap
+                        opacity: visible ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 300 } }
                     }
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 6 * lockScreenUi.centerScale
-                        anchors.rightMargin: 6 * lockScreenUi.centerScale
-                        spacing: 10 * lockScreenUi.centerScale
-
-                        Item {
-                            Layout.fillHeight: true; implicitWidth: height
-                            Text {
-                                anchors.centerIn: parent
-                                text: "lock"
-                                font.family: "Material Symbols Rounded"
-                                font.pixelSize: LockScreenConfig.sizeLarge * lockScreenUi.centerScale
-                                color: lockScreenUi.clSurfaceVariantFg
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true; Layout.fillHeight: true
-                            color: "transparent"
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left
-                                text: (passwordPill && passwordPill.text.length > 0) ? "•".repeat(passwordPill.text.length) : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder", "Password")
-                                font { pixelSize: LockScreenConfig.sizeMedium * lockScreenUi.centerScale; family: LockScreenConfig.fontBody }
-                                color: (passwordPill && passwordPill.text.length > 0) ? lockScreenUi.clSurfaceFg : lockScreenUi.clSurfaceVariantFg
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: if (passwordPill) passwordPill.forceActiveFocus()
-                            }
-                        }
-
-                        Item {
-                            implicitWidth: implicitHeight; implicitHeight: parent.height - 12 * lockScreenUi.centerScale
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: (passwordPill && passwordPill.text.length > 0) ? width * 0.25 : width / 2
-                                color: (passwordPill && passwordPill.text.length > 0) ? lockScreenUi.clPrimary : lockScreenUi.clSurfaceContainerHigh
-                                Behavior on radius { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                Behavior on color { ColorAnimation { duration: 300 } }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "arrow_forward"
-                                    font.family: LockScreenConfig.fontIcon
-                                    font.pixelSize: LockScreenConfig.sizeLarge * lockScreenUi.centerScale
-                                    color: (passwordPill && passwordPill.text.length > 0) ? lockScreenUi.clPrimaryFg : lockScreenUi.clSurfaceVariantFg
-                                    rotation: (passwordPill && passwordPill.text.length > 0) ? 0 : 90
-                                    Behavior on color { ColorAnimation { duration: 300 } }
-                                    Behavior on rotation { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; hoverEnabled: true
-                                    cursorShape: (passwordPill && passwordPill.text.length > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    onClicked: lockScreenUi.startLogin()
-                                }
-                            }
-                        }
+                    Text {
+                        id: portraitErrorText
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: false
+                        text: lockScreenUi.authMessage
+                        font { pixelSize: LockScreenConfig.sizeSmall; family: LockScreenConfig.fontBody }
+                        color: lockScreenUi.clError
+                        wrapMode: Text.WordWrap
+                        scale: 0.7; opacity: 0
                     }
 
-                    Session {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 4 * lockScreenUi.centerScale
-                        centerScale: lockScreenUi.centerScale
-                        isAuthenticating: lockScreenUi.isAuthenticating
-                        clPrimary: lockScreenUi.clPrimary
-                        clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
-                        sessionManagement: sessionManagement
-                        customIcons: lockScreenUi.sessionIcons
-                        showSleep: lockScreenUi.showSleep
-                        showHibernate: lockScreenUi.showHibernate
-                        showSwitchUser: lockScreenUi.showSwitchUser
-                        showLogout: lockScreenUi.showLogout
-                        showReboot: lockScreenUi.showReboot
-                        showShutdown: lockScreenUi.showShutdown
+                    Text {
+                        id: portraitFpHint
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: lockScreenUi.hasFingerprint
+                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
+                        font { pixelSize: LockScreenConfig.sizeVerySmall; family: LockScreenConfig.fontBody }
+                        color: lockScreenUi.clSurfaceVariantFg
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
         }
-    }
     }
 
     RowLayout {

@@ -32,7 +32,6 @@ Item {
 
     implicitHeight: 200
     clip: true
-    focus: true
 
     onWidthChanged: DinoGameBackend.width = width
     Component.onCompleted: DinoGameBackend.width = width
