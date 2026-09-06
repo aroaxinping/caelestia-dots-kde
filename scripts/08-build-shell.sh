@@ -330,6 +330,16 @@ else
         exit 1
     fi
 
+    # Snapshot the live shell tree before install overwrites it, so local
+    # edits made per CONTRIBUTING.md survive an update instead of vanishing.
+    QS_CONF="$HOME/.config/quickshell/caelestia"
+    if [[ -d "$QS_CONF" ]]; then
+        _qs_backup_dir="${XDG_CACHE_HOME:-$HOME/.cache}/caelestia-kde/backups"
+        mkdir -p "$_qs_backup_dir"
+        cp -r "$QS_CONF" "$_qs_backup_dir/quickshell-caelestia-$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+        ls -1dt "$_qs_backup_dir"/quickshell-caelestia-* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+    fi
+
     info "Installing to user local dir..."
     if ! cmake --install build 2>&1 | tee -a "$BUILD_LOG"; then
         err "Installation failed. Full log: $BUILD_LOG"
