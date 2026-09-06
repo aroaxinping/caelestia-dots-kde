@@ -467,16 +467,38 @@ void execute() {
     exit(1);
   }
 
+  // Live log view state. The log view is a persistent display *mode* rather
+  // than a blocking screen (as log_view() is): while it is open the step loop
+  // below keeps polling the child and advancing to later steps, so watching
+  // the full log never stalls the install. It stays open across step
+  // boundaries until the user presses L/Tab/Esc to return to the progress
+  // screen.
+  bool log_open = false;
+  UI::LogViewState log_state;
+
+  // Draws the progress screen only when the live log view is not covering it.
+  auto show_progress = [&](size_t idx) {
+    if (!log_open)
+      draw_progress_ui(idx);
+  };
+
   for (size_t i = 0; i < steps.size(); ++i) {
   retry_step:
     if (step_is_skipped(steps[i])) {
       steps[i].status = "SKIPPED";
-      draw_progress_ui(i);
+      // Keep the shared log a complete record (and the live view readable)
+      // when a step is gated off by configuration.
+      dprintf(log_fd, "\n[CAELESTIA] %s (skipped)\n", steps[i].name.c_str());
+      if (log_open) {
+        UI::log_view_tick(log_path, log_state);
+      } else {
+        draw_progress_ui(i);
+      }
       continue;
     }
 
     steps[i].status = "RUNNING";
-    draw_progress_ui(i);
+    show_progress(i);
 
     // Record where this step's log output starts so its own segment can be
     // scanned for [WARN] markers afterwards.
@@ -492,7 +514,7 @@ void execute() {
     pid_t child = spawn_step(script, log_fd);
     if (child < 0) {
       steps[i].status = "FAILED";
-      draw_progress_ui(i);
+      show_progress(i);
       string action = show_error_dialog(steps[i].name, steps[i].script_path,
                                         "Could not start the step script.",
                                         g_term_width, g_term_height);
@@ -507,9 +529,10 @@ void execute() {
     }
 
     // Poll the child, redraw on resize, and let the user toggle the live
-    // log view while the step runs.
+    // log view while the step runs. The log view is non-blocking here: the
+    // loop keeps calling waitpid beneath it, so the running step finishes and
+    // the next one starts even while the full log is on screen.
     int child_status = 0;
-    bool show_log = false;
     while (true) {
       pid_t r = waitpid(child, &child_status, WNOHANG);
       if (r == child)
@@ -519,7 +542,7 @@ void execute() {
         break;
       }
 
-      if (g_resized)
+      if (g_resized && !log_open)
         draw_progress_ui(i);
 
       if (g_sigint_received || g_sigterm_received || g_quit) {
@@ -533,20 +556,33 @@ void execute() {
         exit(130);
       }
 
-      string key = Input::wait_key(200);
-      if (key == "l" || key == "L" || key == "KEY_shift_tab") {
-        show_log = true;
-      }
-      if (show_log) {
-        UI::log_view(log_path);
-        show_log = false;
-        draw_progress_ui(i);
+      // Poll faster while the live log is open so its tail stays smooth; in
+      // progress mode the longer timeout paces the spinner.
+      string key = Input::wait_key(log_open ? 100 : 200);
+
+      bool closed_log = false;
+      if (key == "l" || key == "L" || key == "KEY_shift_tab" ||
+          (log_open && key == "escape")) {
+        // Toggle the full-screen log. Opening resets scroll state so the view
+        // follows the newest output; closing returns to the progress screen.
+        log_open = !log_open;
+        if (log_open) {
+          log_state = UI::LogViewState();
+        } else {
+          closed_log = true;
+        }
+      } else if (log_open) {
+        // Scroll/pause/next-issue keys; the view is redrawn below.
+        UI::log_view_key(key, log_state);
       }
 
-      // Advance the spinner on each poll timeout so the running step shows
-      // ongoing activity.
-      if (key.empty()) {
-        g_spin_frame++;
+      if (log_open) {
+        UI::log_view_tick(log_path, log_state);
+      } else if (closed_log || g_resized || key.empty()) {
+        // Advance the spinner on each poll timeout so the running step shows
+        // ongoing activity.
+        if (key.empty())
+          g_spin_frame++;
         draw_progress_ui(i);
       }
     }
@@ -563,7 +599,7 @@ void execute() {
       steps[i].status = warned ? "WARN" : "OK";
     } else {
       steps[i].status = "FAILED";
-      draw_progress_ui(i);
+      show_progress(i);
 
       string detail;
       {
@@ -591,7 +627,14 @@ void execute() {
   if (log_fd >= 0)
     close(log_fd);
 
-  draw_progress_ui(steps.size());
-  this_thread::sleep_for(chrono::seconds(2));
+  if (log_open) {
+    // Every step is done. Hand the (now static) log to the blocking viewer so
+    // the user can review the whole install before the summary screen; nothing
+    // is left running to stall, so blocking here is fine.
+    UI::log_view(log_path);
+  } else {
+    draw_progress_ui(steps.size());
+    this_thread::sleep_for(chrono::seconds(2));
+  }
 }
 } // namespace Runner

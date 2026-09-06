@@ -638,153 +638,180 @@ namespace UI {
         return false;
     }
 
+    // Parse + redraw one frame of the full-screen log view. Non-blocking:
+    // call repeatedly while the view is on screen (it handles resize itself).
+    // A cheap size check skips re-reading when the log has not grown, so an
+    // idle frame costs a stat() rather than a full file read.
+    void log_view_tick(const std::string& log_path, LogViewState& s) {
+        if (g_resized) { Term::get_size(); g_resized = false; s.redraw = true; }
+
+        long size_now = -1;
+        {
+            struct stat st {};
+            if (stat(log_path.c_str(), &st) == 0)
+                size_now = (long)st.st_size;
+        }
+        if (!s.redraw && size_now == s.last_size)
+            return;
+        s.last_size = size_now;
+
+        string content;
+        {
+            ifstream in(log_path, ios::binary);
+            if (in) {
+                in.seekg(0, ios::end);
+                streamoff len = in.tellg();
+                const streamoff kMax = 1024 * 1024; // tail at most 1 MiB
+                if (len > kMax)
+                    in.seekg(len - kMax, ios::beg);
+                else
+                    in.seekg(0, ios::beg);
+                stringstream ss;
+                ss << in.rdbuf();
+                content = ss.str();
+            }
+        }
+
+        s.lines.clear();
+        s.issues.clear();
+        string line;
+        auto push_line = [&]() {
+            if (line.find("[WARN]") != string::npos || line.find("[ERR]") != string::npos)
+                s.issues.push_back(s.lines.size());
+            s.lines.push_back(Draw::strip_ansi(line));
+            line.clear();
+        };
+        for (char ch : content) {
+            if (ch == '\n')
+                push_line();
+            else
+                line += ch;
+        }
+        if (!line.empty())
+            push_line();
+        s.redraw = true;
+
+        // Clamp the viewport from the current size; follow keeps the newest
+        // line on screen, otherwise keep the user's paused position.
+        int show = g_term_height - 6;
+        if (show < 1) show = 1;
+        long max_scroll = (long)s.lines.size() - show;
+        if (max_scroll < 0) max_scroll = 0;
+        if (s.follow) {
+            s.view_top = max_scroll;
+        } else {
+            if (s.view_top > max_scroll) s.view_top = max_scroll;
+            if (s.view_top < 0) s.view_top = 0;
+        }
+
+        cout << Draw::sync_start() << Draw::clear();
+
+        int x = 1, y = 1;
+        int w = g_term_width - 2;
+        int h = g_term_height - 2;
+        if (w < 20 || h < 6) { cout << Draw::sync_end() << flush; return; }
+
+        Draw::box(x, y, w, h, "INSTALL LOG", "primary", "on_surface");
+
+        for (int i = 0; i < show && (s.view_top + (long)i) < (long)s.lines.size(); ++i) {
+            long idx = s.view_top + (long)i;
+            string color;
+            if (s.lines[idx].find("[ERR]") != string::npos)
+                color = "error";
+            else if (s.lines[idx].find("[WARN]") != string::npos)
+                color = "warning";
+            Draw::text(x + 2, y + 2 + i, Draw::fit(s.lines[idx], (size_t)(w - 4)), color);
+        }
+
+        string status = s.follow ? "Following" : "Paused";
+        string help = "Up/Down/PgUp/PgDn scroll   n/p - next issue   L - back";
+        Draw::text(x + 2, y + h - 2,
+                   Draw::fit(status + "    " + help, (size_t)(w - 4)), "muted");
+        cout << Draw::sync_end() << flush;
+    }
+
+    // Applies one key to the log view state (scroll/pause/next-issue).
+    // Returns true when the key asks to leave the view (L/Tab/Esc/Ctrl+C).
+    // Paging is recomputed from the current terminal height so scroll amounts
+    // survive a resize.
+    bool log_view_key(const std::string& key, LogViewState& s) {
+        if (key == "l" || key == "L" || key == "KEY_shift_tab" ||
+            key == "escape" || key == "signal_interrupt")
+            return true;
+
+        int show = g_term_height - 6;
+        if (show < 1) show = 1;
+        int page = show > 1 ? show - 1 : 1;
+        long max_scroll = (long)s.lines.size() - show;
+        if (max_scroll < 0) max_scroll = 0;
+
+        if (key == "KEY_up") {
+            s.follow = false;
+            if (s.view_top > 0) { s.view_top--; s.redraw = true; }
+        } else if (key == "KEY_down") {
+            if (!s.follow) {
+                if (s.view_top < max_scroll) { s.view_top++; s.redraw = true; }
+                if (s.view_top >= max_scroll) s.follow = true;
+            }
+        } else if (key == "KEY_page_up") {
+            s.follow = false;
+            long before = s.view_top;
+            s.view_top -= page;
+            if (s.view_top < 0) s.view_top = 0;
+            if (s.view_top != before) s.redraw = true;
+        } else if (key == "KEY_page_down") {
+            if (!s.follow) {
+                long before = s.view_top;
+                s.view_top += page;
+                if (s.view_top > max_scroll) s.view_top = max_scroll;
+                if (s.view_top >= max_scroll) s.follow = true;
+                if (s.view_top != before) s.redraw = true;
+            }
+        } else if (key == "KEY_home") {
+            s.follow = false;
+            if (s.view_top != 0) { s.view_top = 0; s.redraw = true; }
+        } else if (key == "KEY_end") {
+            if (!s.follow || s.view_top != max_scroll) { s.follow = true; s.view_top = max_scroll; s.redraw = true; }
+        } else if (key == "n" || key == "N") {
+            long target = -1;
+            for (size_t idx : s.issues) {
+                if ((long)idx > s.view_top) { target = (long)idx; break; }
+            }
+            if (target == -1 && !s.issues.empty()) target = (long)s.issues[0];
+            if (target != -1) {
+                s.follow = false;
+                s.view_top = target - show / 2;
+                if (s.view_top < 0) s.view_top = 0;
+                s.redraw = true;
+            }
+        } else if (key == "p" || key == "P") {
+            long target = -1;
+            for (size_t i = s.issues.size(); i-- > 0;) {
+                if ((long)s.issues[i] < s.view_top) { target = (long)s.issues[i]; break; }
+            }
+            if (target == -1 && !s.issues.empty()) target = (long)s.issues.back();
+            if (target != -1) {
+                s.follow = false;
+                s.view_top = target - show / 2;
+                if (s.view_top < 0) s.view_top = 0;
+                s.redraw = true;
+            }
+        }
+        return false;
+    }
+
+    // Blocking full-screen tail of the install log. Only safe where no step is
+    // still running (Complete screen): it reads keys until the user leaves, so
+    // the install loop must NOT call it mid-step - that stalls the install
+    // until the user returns to the progress screen. The runner instead keeps
+    // log_open state and calls log_view_tick/log_view_key so steps advance
+    // underneath an open log view.
     void log_view(const std::string& log_path) {
-        bool redraw = true;
-        string last_content;
-        vector<string> lines;
-        vector<size_t> issues; // indices of lines with [WARN] or [ERR]
-        long view_top = 0;     // index of the first visible line
-        bool follow = true;    // auto-scroll to the newest line
-
+        LogViewState s;
         while (!g_quit) {
-            if (g_resized) { Term::get_size(); g_resized = false; redraw = true; }
-
-            string content;
-            {
-                ifstream in(log_path, ios::binary);
-                if (in) {
-                    in.seekg(0, ios::end);
-                    streamoff len = in.tellg();
-                    const streamoff kMax = 1024 * 1024; // tail at most 1 MiB
-                    if (len > kMax)
-                        in.seekg(len - kMax, ios::beg);
-                    else
-                        in.seekg(0, ios::beg);
-                    stringstream ss;
-                    ss << in.rdbuf();
-                    content = ss.str();
-                }
-            }
-            if (content != last_content) {
-                last_content = content;
-                lines.clear();
-                issues.clear();
-                string line;
-                for (char ch : content) {
-                    if (ch == '\n') {
-                        if (line.find("[WARN]") != string::npos || line.find("[ERR]") != string::npos)
-                            issues.push_back(lines.size());
-                        lines.push_back(Draw::strip_ansi(line));
-                        line.clear();
-                    } else {
-                        line += ch;
-                    }
-                }
-                if (!line.empty()) {
-                    if (line.find("[WARN]") != string::npos || line.find("[ERR]") != string::npos)
-                        issues.push_back(lines.size());
-                    lines.push_back(Draw::strip_ansi(line));
-                }
-                redraw = true;
-            }
-
-            // Clamp the viewport and derive paging from the current size.
-            int show = g_term_height - 6;
-            if (show < 1) show = 1;
-            int page = show > 1 ? show - 1 : 1;
-            long max_scroll = (long)lines.size() - show;
-            if (max_scroll < 0) max_scroll = 0;
-            if (follow) {
-                view_top = max_scroll;
-            } else {
-                if (view_top > max_scroll) view_top = max_scroll;
-                if (view_top < 0) view_top = 0;
-            }
-
-            if (redraw) {
-                redraw = false;
-                cout << Draw::sync_start() << Draw::clear();
-
-                int x = 1, y = 1;
-                int w = g_term_width - 2;
-                int h = g_term_height - 2;
-                if (w < 20 || h < 6) { cout << Draw::sync_end() << flush; return; }
-
-                Draw::box(x, y, w, h, "INSTALL LOG", "primary", "on_surface");
-
-                for (int i = 0; i < show && (view_top + (long)i) < (long)lines.size(); ++i) {
-                    long idx = view_top + (long)i;
-                    string color;
-                    if (lines[idx].find("[ERR]") != string::npos)
-                        color = "error";
-                    else if (lines[idx].find("[WARN]") != string::npos)
-                        color = "warning";
-                    Draw::text(x + 2, y + 2 + i, Draw::fit(lines[idx], (size_t)(w - 4)), color);
-                }
-
-                string status = follow ? "Following" : "Paused";
-                string help = "Up/Down/PgUp/PgDn scroll   n/p - next issue   L - back";
-                Draw::text(x + 2, y + h - 2,
-                           Draw::fit(status + "    " + help, (size_t)(w - 4)), "muted");
-                cout << Draw::sync_end() << flush;
-            }
-
+            log_view_tick(log_path, s);
             string key = Input::wait_key(100);
-            if (key == "l" || key == "L" || key == "KEY_shift_tab" || key == "escape") return;
-            if (key == "signal_interrupt") return;
-
-            if (key == "KEY_up") {
-                follow = false;
-                if (view_top > 0) { view_top--; redraw = true; }
-            } else if (key == "KEY_down") {
-                if (!follow) {
-                    if (view_top < max_scroll) { view_top++; redraw = true; }
-                    if (view_top >= max_scroll) follow = true;
-                }
-            } else if (key == "KEY_page_up") {
-                follow = false;
-                long before = view_top;
-                view_top -= page;
-                if (view_top < 0) view_top = 0;
-                if (view_top != before) redraw = true;
-            } else if (key == "KEY_page_down") {
-                if (!follow) {
-                    long before = view_top;
-                    view_top += page;
-                    if (view_top > max_scroll) view_top = max_scroll;
-                    if (view_top >= max_scroll) follow = true;
-                    if (view_top != before) redraw = true;
-                }
-            } else if (key == "KEY_home") {
-                follow = false;
-                if (view_top != 0) { view_top = 0; redraw = true; }
-            } else if (key == "KEY_end") {
-                if (!follow || view_top != max_scroll) { follow = true; view_top = max_scroll; redraw = true; }
-            } else if (key == "n" || key == "N") {
-                long target = -1;
-                for (size_t idx : issues) {
-                    if ((long)idx > view_top) { target = (long)idx; break; }
-                }
-                if (target == -1 && !issues.empty()) target = (long)issues[0];
-                if (target != -1) {
-                    follow = false;
-                    view_top = target - show / 2;
-                    if (view_top < 0) view_top = 0;
-                    redraw = true;
-                }
-            } else if (key == "p" || key == "P") {
-                long target = -1;
-                for (size_t i = issues.size(); i-- > 0;) {
-                    if ((long)issues[i] < view_top) { target = (long)issues[i]; break; }
-                }
-                if (target == -1 && !issues.empty()) target = (long)issues.back();
-                if (target != -1) {
-                    follow = false;
-                    view_top = target - show / 2;
-                    if (view_top < 0) view_top = 0;
-                    redraw = true;
-                }
-            }
+            if (log_view_key(key, s)) return;
         }
     }
 
