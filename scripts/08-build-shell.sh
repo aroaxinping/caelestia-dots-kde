@@ -8,6 +8,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/privileges.sh"
 BUNDLE_DIR="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 SHELL_DIR="$BUNDLE_DIR/shell"
 
+# Setting Caelestia force build shell to true for now.
+CAELESTIA_FORCE_BUILD_SHELL="${CAELESTIA_FORCE_BUILD_SHELL:-true}"
+
 # Prefer Ninja for faster builds; fall back to CMake's default generator when
 # it is not available (e.g. a standalone/update run before package install).
 # Reflected in the toolchain stamp so a build dir is invalidated if the
@@ -285,17 +288,22 @@ try_download_prebuilt_shell() {
 
     tmp_archive="$(mktemp --suffix=.tar.gz)"
     url="https://github.com/ladybug-me/caelestia-dots-kde/releases/download/${tag}/caelestia-shell-${arch}-qt${qt_abi}.tar.gz"
-    if ! curl -fsSL --connect-timeout 10 --max-time 120 "$url" -o "$tmp_archive" 2>/dev/null; then
+    info "Downloading prebuilt shell artifacts (${tag}, Qt ${qt_abi})..."
+    if ! curl -fL --connect-timeout 10 --progress-bar "$url" -o "$tmp_archive"; then
+        warn "Failed to download prebuilt shell artifacts from $url"
         rm -f "$tmp_archive"
         return 1
     fi
 
+    info "Extracting prebuilt shell artifacts..."
     mkdir -p "$HOME/.local" "$HOME/.config"
-    if ! tar -C "$HOME/.local" -xzf "$tmp_archive" lib 2>/dev/null; then
+    if ! tar -C "$HOME/.local" -xzf "$tmp_archive" lib; then
+        warn "Failed to extract lib from prebuilt shell archive"
         rm -f "$tmp_archive"
         return 1
     fi
-    if ! tar -C "$HOME/.config" -xzf "$tmp_archive" quickshell 2>/dev/null; then
+    if ! tar -C "$HOME/.config" -xzf "$tmp_archive" quickshell; then
+        warn "Failed to extract quickshell from prebuilt shell archive"
         rm -f "$tmp_archive"
         return 1
     fi
