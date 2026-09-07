@@ -146,6 +146,7 @@ Item {
 
     Timer {
         id: authTimeoutTimer
+
         interval: root.timeoutInterval
         repeat: false
         onTriggered: {
@@ -162,6 +163,7 @@ Item {
 
     Timer {
         id: notificationRemoveTimer
+
         interval: root.notificationDismissInterval
         onTriggered: {
             root.clearAuthMessage();
@@ -170,6 +172,7 @@ Item {
 
     Timer {
         id: graceLockTimer
+
         interval: root.graceLockInterval
         repeat: false
         onTriggered: {
@@ -183,6 +186,7 @@ Item {
 
     Timer {
         id: fallbackUnlockTimer
+
         interval: 2000
         repeat: false
         onTriggered: {
@@ -196,6 +200,7 @@ Item {
 
     Timer {
         id: lockoutCountdownTimer
+
         interval: 1000
         repeat: true
         running: root.lockoutSecondsRemaining > 0
@@ -207,9 +212,6 @@ Item {
     }
 
     Connections {
-        target: activeAuthenticator
-        ignoreUnknownSignals: true
-
         function onFailed(kind, auth) {
             authTimeoutTimer.stop();
 
@@ -331,5 +333,8 @@ Item {
                 root.focusSecretRequested();
             }
         }
+
+        target: activeAuthenticator
+        ignoreUnknownSignals: true
     }
 }

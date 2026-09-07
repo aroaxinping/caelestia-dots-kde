@@ -37,7 +37,7 @@ Item {
     property bool hideNotifs: false
     property bool enableFprint: true
     property int maxFprintTries: 3
-    property int fprintTries: 0
+    readonly property alias fprintTries: authHandler.fprintTries
     property int profilePicShape: 13
     property bool rotateProfilePic: false
     property bool syncWallpaper: true
@@ -405,11 +405,10 @@ Item {
         id: authHandler
 
         authenticatorTarget: (typeof authenticator !== "undefined") ? authenticator : null
-        fprintTries: lockScreenUi.fprintTries
+        maxFprintTries: lockScreenUi.maxFprintTries
         onShakeRequested: if (activePasswordPill) activePasswordPill.shake()
         onFocusSecretRequested: if (activePasswordPill) activePasswordPill.forceActiveFocus()
         onSucceeded: {
-            lockScreenUi.fprintTries = 0;
             Qt.quit();
         }
         onMessageChanged: msg => {
