@@ -25,6 +25,7 @@ Item {
     ServiceRef { service: Cpu }
     ServiceRef { service: Memory }
     ServiceRef { service: Storage }
+    ServiceRef { service: Weather }
 
     readonly property real lockHeight: Math.min(width, height)
     readonly property real lockLong: lockHeight * 0.7 * (16.0 / 9.0)
@@ -236,31 +237,6 @@ Item {
             try {
                 fetchInfo = JSON.parse(stdout);
             } catch(e) {}
-        }
-    }
-
-    Plasma5Support.DataSource {
-        id: weatherLoader
-        engine: "executable"
-        connectedSources: ["curl -s 'wttr.in/?format=j1'"]
-        property var weatherInfo: null
-        onNewData: (source, data) => {
-            var stdout = data["stdout"] || "";
-            if (!stdout) return;
-            try {
-                weatherInfo = JSON.parse(stdout);
-            } catch(e) {}
-        }
-    }
-
-    Timer {
-        id: weatherTimer
-        interval: 600000
-        repeat: true
-        running: true
-        onTriggered: {
-            weatherLoader.disconnectSource("curl -s 'wttr.in/?format=j1'");
-            weatherLoader.connectSource("curl -s 'wttr.in/?format=j1'");
         }
     }
 
@@ -634,7 +610,6 @@ Item {
                         implicitHeight: Layout.preferredHeight
                         cardRadius: lockScreenUi.cardRadius
                         centerScale: lockScreenUi.centerScale
-                        weatherInfo: weatherLoader.weatherInfo
                         clSurfaceContainer: lockScreenUi.clCardBg
                         clSurfaceFg: lockScreenUi.clSurfaceFg
                         clSurfaceVariantFg: lockScreenUi.clSurfaceVariantFg
