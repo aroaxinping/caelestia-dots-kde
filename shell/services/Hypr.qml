@@ -232,17 +232,24 @@ Singleton {
 
         const wins = KWinActiveWindowBridge.windowList || [];
         const activeWsId = (typeof KWinWorkspaceState !== "undefined") ? KWinWorkspaceState.activeId : -1;
-        const activeAddr = focusedOnly ? String(KWinActiveWindowBridge.activeWindow?.address ?? "") : "";
+        const activeWindow = KWinActiveWindowBridge.activeWindow;
+        const activeAddr = activeWindow ? String(activeWindow.address ?? "") : "";
 
-        // Nothing focused means nothing to dodge, rather than everything.
+        // Nothing focused means nothing to dodge globally.
         if (focusedOnly && !activeAddr)
             return false;
+
+        // If dodging only focused windows, determine if the focused window is on this screen.
+        // If it's on another screen, fallback to dodging any overlapping window on this screen,
+        // so that maximized windows on inactive screens are still respected.
+        const isActiveScreen = screenName && activeWindow && activeWindow.output === screenName;
+        const applyFocusedOnly = focusedOnly && isActiveScreen;
 
         for (let i = 0; i < wins.length; i++) {
             const win = wins[i];
             if (win.minimized === true)
                 continue;
-            if (focusedOnly && String(win.address) !== activeAddr)
+            if (applyFocusedOnly && String(win.address) !== activeAddr)
                 continue;
             if (screenName && win.output !== screenName)
                 continue;
