@@ -31,7 +31,7 @@ PACKAGE_GROUP="${PACKAGE_GROUP:-all}"
 CORE_PACKAGES=(
     cmake ninja ccache qt6-tools
     wl-clipboard cliphist wl-clip-persist inotify-tools app2unit wireplumber trash-cli jq aubio lm_sensors
-    libpipewire glibc qt6-declarative gcc-libs qt6-base qt6-declarative qt6-wayland libqalculate kpipewire kglobalaccel kglobalacceld libsecret ksshaskpass
+    libpipewire glibc qt6-declarative gcc-libs qt6-base qt6-declarative qt6-wayland qt6-shadertools libqalculate kpipewire kglobalaccel kglobalacceld kguiaddons kwindowsystem pulseaudio-qt libpulse kconfig libx11 libsecret ksshaskpass
     networkmanager-qt vulkan-headers
     ffmpeg
 )

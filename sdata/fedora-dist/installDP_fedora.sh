@@ -34,7 +34,7 @@ PACKAGE_GROUP="${PACKAGE_GROUP:-all}"
 CORE_PACKAGES=(
     cmake ninja-build ccache qt6-qttools-devel
     wl-clipboard cliphist wl-clip-persist inotify-tools wireplumber trash-cli jq aubio lm_sensors lm_sensors-devel
-    pipewire-devel glibc qt6-qtdeclarative qt6-qtdeclarative-devel qt6-qtwayland qt6-qtwayland-devel kf6-kglobalaccel-devel qt6-qtbase-private-devel qt6-qtsvg qt6-qtsvg-devel qt6-qtshadertools-devel libgcc qt6-qtbase libqalculate libqalculate-devel aubio-devel kf6-kpipewire kf6-kpipewire-devel kf6-kwindowsystem-devel kf6-networkmanager-qt-devel libsecret vulkan-headers ksshaskpass
+    pipewire-devel glibc qt6-qtdeclarative qt6-qtdeclarative-devel qt6-qtwayland qt6-qtwayland-devel kf6-kglobalaccel-devel qt6-qtbase-private-devel qt6-qtsvg qt6-qtsvg-devel qt6-qtshadertools-devel libgcc qt6-qtbase libqalculate libqalculate-devel aubio-devel kf6-kpipewire kf6-kpipewire-devel kf6-kwindowsystem-devel kf6-kguiaddons-devel pulseaudio-qt-qt6-devel pulseaudio-libs-devel kf6-kconfig-devel kf6-networkmanager-qt-devel libsecret vulkan-headers ksshaskpass libX11-devel
 )
 
 SHELL_PACKAGES=(
