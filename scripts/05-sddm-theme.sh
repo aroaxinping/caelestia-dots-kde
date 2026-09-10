@@ -175,9 +175,11 @@ else
     ALL_OK=false
 fi
 
+# Non-fatal problems are reported through the [WARN] markers in this step's
+# output, which the TUI turns into a WARN status. The exit code stays 0 so a
+# theme that did install is not reported as FAILED and offered for retry.
 if [[ "$ALL_OK" == "true" ]]; then
     ok "SDDM theme installed."
 else
     warn "SDDM theme installed with warnings. Review the output above."
-    exit 1
 fi
