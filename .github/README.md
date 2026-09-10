@@ -23,7 +23,7 @@ A community port of the [Caelestia Hyprland dotfiles](https://github.com/caelest
 
 ## Installation
 
-**Requirements:** Arch-based distro, Fedora, or Ubuntu (Rolling) · KDE Plasma 6.0+
+**Requirements:** Arch-based distro, Fedora, or Ubuntu (Rolling) · KDE Plasma 6.0+ Wayland
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ladybug-me/caelestia-dots-kde/main/install.sh | sh
