@@ -143,6 +143,17 @@
           "default": false
         },
         {
+          "id": "SDDM_THEME_VARIANT",
+          "type": "select",
+          "title": "SDDM theme variant",
+          "help": "Full: clock, system info, quotes, avatar, blur effects. Mini: centered login card, clean and minimal.",
+          "default": "full",
+          "options": [
+            "full",
+            "mini"
+          ]
+        },
+        {
           "id": "action_back",
           "type": "action",
           "title": "Back"

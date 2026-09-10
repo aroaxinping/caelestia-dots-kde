@@ -1,10 +1,9 @@
 [SddmGreeterTheme]
 Name=Caelestia SDDM Mini
-Comment=Minimal Caelestia Shell Login Theme
 Description=Material You themed SDDM greeter
+Author=aroa
 Type=sddm-theme
 Version=1.0
-Author=aroa
 MainScript=Main.qml
 ConfigFile=theme.conf
 Theme-API=2.0

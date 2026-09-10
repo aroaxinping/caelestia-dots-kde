@@ -5,8 +5,6 @@ user_path_exists() {
     sudo -H -u "$REAL_USER" test -e "$1" || sudo -H -u "$REAL_USER" test -L "$1"
 }
 
-# Ensure we don't copy invalid files,
-# or anything the user shouldn't have access to.
 copy_user_file() {
     local src="$1"
     local dest="$2"
@@ -39,7 +37,7 @@ copy_user_file() {
 
     actual_size="$(stat -c '%s' "$read_tmp")"
 
-    if [ "$actual_size" -gt "$max_bytes" ]; then
+    if [[ "$actual_size" -gt "$max_bytes" ]]; then
         echo "WARNING: Skipping oversized file: $src" >&2
         fail_cleanup
         return
@@ -76,8 +74,7 @@ sync_optional_user_file() {
     fi
 }
 
-# Get the real user and home directory
-if [ -n "${SUDO_USER:-}" ]; then
+if [[ -n "${SUDO_USER:-}" ]]; then
     REAL_USER="$SUDO_USER"
 else
     echo "ERROR: Cannot determine target user. Try running with sudo." >&2
@@ -85,7 +82,7 @@ else
 fi
 
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
-if [ -z "$REAL_HOME" ] || [ "$REAL_HOME" = "/" ]; then
+if [[ -z "$REAL_HOME" ]] || [[ "$REAL_HOME" = "/" ]]; then
     echo "ERROR: Could not determine a valid home directory for $REAL_USER." >&2
     exit 1
 fi
@@ -93,21 +90,16 @@ fi
 CAEL_STATE="$REAL_HOME/.local/state/caelestia"
 THEME_DIR="/usr/share/sddm/themes/caelestia"
 
-# Clear SDDM greeter QML cache
-rm -rf /var/lib/sddm/.cache/sddm-greeter-qt6
-
 # 1. Generate FRESH colors from the current Caelestia scheme settings FIRST
-if [ "${1:-}" = "--posthook" ]; then
+if [[ "${1:-}" = "--posthook" ]]; then
     : # Skip color generation when run as posthook (--posthook)
     echo "✓ Running as posthook, skipping color generation"
 elif command -v caelestia &>/dev/null; then
-    # IMPORTANT: must use sudo -u here
     mapfile -t SCHEME < <(sudo -H -u "$REAL_USER" caelestia scheme get --name --mode --variant 2>/dev/null)
     NAME="${SCHEME[0]:-}"
     MODE="${SCHEME[1]:-}"
     VARIANT="${SCHEME[2]:-}"
-    if [ -n "$NAME" ] && [ -n "$MODE" ] && [ -n "$VARIANT" ]; then
-        # and here
+    if [[ -n "$NAME" ]] && [[ -n "$MODE" ]] && [[ -n "$VARIANT" ]]; then
         sudo -H -u "$REAL_USER" caelestia scheme set --name "$NAME" --mode "$MODE" --variant "$VARIANT" 2>/dev/null
         echo "✓ Generated colors for scheme: $NAME/$MODE/$VARIANT"
     else
@@ -136,9 +128,8 @@ THEME_CONF_DEST="$THEME_DIR/theme.conf"
 MAX_THEME_CONF_BYTES=$((1024 * 1024))
 
 if copy_user_file "$THEME_CONF_SRC" "$THEME_CONF_DEST" "$MAX_THEME_CONF_BYTES"; then
-    # Get system OS name and Hostname
     sys_os="Linux"
-    if [ -f /etc/os-release ]; then
+    if [[ -f /etc/os-release ]]; then
         sys_os=$(grep -oP '^PRETTY_NAME="\K[^"]+' /etc/os-release || grep -oP '^PRETTY_NAME=\K.+' /etc/os-release || echo "Linux")
     fi
     sys_host=$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null || echo "localhost")
@@ -146,7 +137,6 @@ if copy_user_file "$THEME_CONF_SRC" "$THEME_CONF_DEST" "$MAX_THEME_CONF_BYTES"; 
     sys_os_escaped=$(printf '%s' "$sys_os" | sed 's/[\/&]/\\&/g')
     sys_host_escaped=$(printf '%s' "$sys_host" | sed 's/[\/&]/\\&/g')
 
-    # Update os= and host= in theme.conf if exist
     sed -i "s/^os=.*/os=$sys_os_escaped/" "$THEME_CONF_DEST"
     sed -i "s/^host=.*/host=$sys_host_escaped/" "$THEME_CONF_DEST"
 
@@ -162,27 +152,20 @@ MAX_WALLPAPER_BYTES=$((50 * 1024 * 1024))
 MAX_VIDEO_WALLPAPER_BYTES=$((250 * 1024 * 1024))
 WALLPAPER_DEST="$THEME_DIR/assets/background"
 
-# Video wallpapers are synced with a proper extension (needed for SDDM to recognize it)
 if command -v file >/dev/null 2>&1; then
     WALLPAPER_MIME="$(sudo -H -u "$REAL_USER" file -b --mime-type -L "$WALLPAPER_SRC" 2>/dev/null || true)"
     case "$WALLPAPER_MIME" in
+        video/webm)       WALLPAPER_DEST="$THEME_DIR/assets/background.webm" ;;
+        video/x-matroska) WALLPAPER_DEST="$THEME_DIR/assets/background.mkv" ;;
+        video/quicktime)  WALLPAPER_DEST="$THEME_DIR/assets/background.mov" ;;
+        video/x-msvideo)  WALLPAPER_DEST="$THEME_DIR/assets/background.avi" ;;
         video/*)
-            WALLPAPER_EXT=""
-            case "$WALLPAPER_MIME" in
-                video/webm) WALLPAPER_EXT="webm" ;;
-                video/x-matroska) WALLPAPER_EXT="mkv" ;;
-                video/quicktime) WALLPAPER_EXT="mov" ;;
-                video/x-msvideo) WALLPAPER_EXT="avi" ;;
+            WALLPAPER_TARGET="$(sudo -H -u "$REAL_USER" readlink -f "$WALLPAPER_SRC" 2>/dev/null || true)"
+            TARGET_EXT="$(printf '%s' "${WALLPAPER_TARGET##*.}" | tr '[:upper:]' '[:lower:]')"
+            case "$TARGET_EXT" in
+                mp4|m4v|webm|mkv|mov|avi) WALLPAPER_DEST="$THEME_DIR/assets/background.$TARGET_EXT" ;;
+                *)                        WALLPAPER_DEST="$THEME_DIR/assets/background.mp4" ;;
             esac
-            if [ -z "$WALLPAPER_EXT" ]; then
-                WALLPAPER_TARGET="$(sudo -H -u "$REAL_USER" readlink -f "$WALLPAPER_SRC" 2>/dev/null || true)"
-                TARGET_EXT="$(printf '%s' "${WALLPAPER_TARGET##*.}" | tr '[:upper:]' '[:lower:]')"
-                case "$TARGET_EXT" in
-                    mp4|m4v|webm|mkv|mov|avi) WALLPAPER_EXT="$TARGET_EXT" ;;
-                    *) WALLPAPER_EXT="mp4" ;;
-                esac
-            fi
-            WALLPAPER_DEST="$THEME_DIR/assets/background.$WALLPAPER_EXT"
             ;;
     esac
 fi
@@ -193,10 +176,8 @@ case "$WALLPAPER_DEST" in
 esac
 
 if copy_user_file "$WALLPAPER_SRC" "$WALLPAPER_DEST" "$MAX_BYTES"; then
-    # make sure to remove stale wallpapers
-    # copy first then remove old
     for old in "$THEME_DIR/assets/background" "$THEME_DIR/assets/background."*; do
-        if [ -e "$old" ] && [ "$old" != "$WALLPAPER_DEST" ]; then
+        if [[ -e "$old" ]] && [[ "$old" != "$WALLPAPER_DEST" ]]; then
             rm -f -- "$old"
         fi
     done

@@ -22,13 +22,22 @@ echo ""
 THEME_NAME="caelestia"
 INSTALL_DIR="/usr/share/sddm/themes/$THEME_NAME"
 SYNC_SCRIPT="$INSTALL_DIR/scripts/sync.sh"
-THEME_SOURCE="$SRC_DIR/themes/full"
+
+VARIANT="${SDDM_THEME_VARIANT:-full}"
+case "$VARIANT" in
+    full|mini) ;;
+    *) die "Unknown SDDM theme variant: $VARIANT" ;;
+esac
+
+THEME_SOURCE="$SRC_DIR/themes/$VARIANT"
+FONT_SOURCE="$BUNDLE_DIR/src/kde/shells/caelestia.desktop/contents/fonts/GoogleSansFlex.ttf"
 
 if [[ ! -d "$THEME_SOURCE" ]]; then
     die "SDDM theme source not found at $THEME_SOURCE"
 fi
 
-# Dependencies (arch only for now)
+ALL_OK=true
+
 if [[ "${BASE_DISTRO:-}" == "arch" ]]; then
     SDDM_DEPS=(sddm qt6-declarative qt6-5compat qt6-svg qt6-multimedia)
     MISSING=()
@@ -42,32 +51,66 @@ if [[ "${BASE_DISTRO:-}" == "arch" ]]; then
         caelestia_sudo pacman -S --noconfirm "${MISSING[@]}"
     fi
     ok "Dependencies met."
+elif [[ "${BASE_DISTRO:-}" == "fedora" ]]; then
+    SDDM_DEPS=(sddm qt6-qtdeclarative qt6-qt5compat qt6-qtsvg qt6-qtmultimedia)
+    MISSING=()
+    for pkg in "${SDDM_DEPS[@]}"; do
+        if ! rpm -q "$pkg" &>/dev/null; then
+            MISSING+=("$pkg")
+        fi
+    done
+    if [[ ${#MISSING[@]} -gt 0 ]]; then
+        info "Installing SDDM dependencies: ${MISSING[*]}"
+        caelestia_sudo dnf install -y "${MISSING[@]}"
+    fi
+    ok "Dependencies met."
+elif [[ "${BASE_DISTRO:-}" == "debian" ]]; then
+    SDDM_DEPS=(sddm qml6-module-qtquick qt6-5compat-dev libqt6svg6 qt6-multimedia-dev)
+    MISSING=()
+    for pkg in "${SDDM_DEPS[@]}"; do
+        if ! dpkg -s "$pkg" &>/dev/null 2>&1; then
+            MISSING+=("$pkg")
+        fi
+    done
+    if [[ ${#MISSING[@]} -gt 0 ]]; then
+        info "Installing SDDM dependencies: ${MISSING[*]}"
+        caelestia_sudo apt-get install -y "${MISSING[@]}"
+    fi
+    ok "Dependencies met."
+else
+    warn "Unsupported distribution ($BASE_DISTRO). SDDM Qt6 dependencies must be installed manually."
+    ALL_OK=false
 fi
 
-# Clean previous install
 if [[ -d "$INSTALL_DIR" ]]; then
     caelestia_sudo rm -rf "$INSTALL_DIR"
 fi
 
-# Copy theme
 caelestia_sudo mkdir -p "$INSTALL_DIR/scripts"
 caelestia_sudo cp -r "$THEME_SOURCE"/* "$INSTALL_DIR/"
 caelestia_sudo cp "$SRC_DIR/sync.sh" "$INSTALL_DIR/scripts/"
 
-# Permissions
+caelestia_sudo mkdir -p "$INSTALL_DIR/assets/google-sans-flex"
+if [[ -f "$FONT_SOURCE" ]]; then
+    caelestia_sudo cp "$FONT_SOURCE" "$INSTALL_DIR/assets/google-sans-flex/GoogleSansFlex.ttf"
+fi
+
+if [[ "$VARIANT" == "mini" && -d "$SRC_DIR/themes/full/components/shapes" ]]; then
+    caelestia_sudo mkdir -p "$INSTALL_DIR/components/shapes"
+    caelestia_sudo cp -r "$SRC_DIR/themes/full/components/shapes"/* "$INSTALL_DIR/components/shapes/"
+fi
+
 caelestia_sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} +
 caelestia_sudo find "$INSTALL_DIR" -type f -exec chmod 644 {} +
 caelestia_sudo chmod 755 "$SYNC_SCRIPT"
-ok "Theme files installed to $INSTALL_DIR"
+ok "Theme files installed to $INSTALL_DIR ($VARIANT variant)"
 
-# Template config
 mkdir -p "$HOME/.config/caelestia/templates"
 if [[ -f "$THEME_SOURCE/theme.conf.template" ]]; then
     cp "$THEME_SOURCE/theme.conf.template" "$HOME/.config/caelestia/templates/sddm-theme.conf"
     ok "Template config created."
 fi
 
-# SDDM drop-in
 caelestia_sudo mkdir -p /etc/sddm.conf.d
 cat <<'DROPIN' | caelestia_sudo tee /etc/sddm.conf.d/caelestia.conf >/dev/null
 [General]
@@ -78,9 +121,9 @@ Current=caelestia
 DROPIN
 ok "SDDM config drop-in created."
 
-# Posthook registration
 POSTHOOK_CMD="sudo $SYNC_SCRIPT --posthook"
 CLI_JSON="$HOME/.config/caelestia/cli.json"
+POSTHOOK_OK=false
 
 if command -v python3 &>/dev/null; then
     python3 - "$CLI_JSON" "$POSTHOOK_CMD" <<'PYEOF'
@@ -93,15 +136,22 @@ if os.path.exists(cli_path):
 for section in ("wallpaper", "theme"):
     if section not in config:
         config[section] = {}
-    config[section]["postHook"] = hook_cmd
+    existing = config[section].get("postHook", "")
+    if existing and hook_cmd not in existing:
+        config[section]["postHook"] = existing + " && " + hook_cmd
+    else:
+        config[section]["postHook"] = hook_cmd
 os.makedirs(os.path.dirname(cli_path), exist_ok=True)
 with open(cli_path, "w") as f:
     json.dump(config, f, indent=4)
 PYEOF
     ok "Posthook registered in cli.json"
+    POSTHOOK_OK=true
+else
+    warn "python3 not found, skipping posthook registration. Wallpaper and color changes will not auto-sync to SDDM."
+    ALL_OK=false
 fi
 
-# Passwordless sudo for sync
 SUDOERS_FILE="/etc/sudoers.d/caelestia-sddm-sync"
 if ! caelestia_sudo_quiet test -f "$SUDOERS_FILE"; then
     echo "$USER ALL=(root) NOPASSWD: $SYNC_SCRIPT" | caelestia_sudo tee "$SUDOERS_FILE" >/dev/null
@@ -109,11 +159,15 @@ if ! caelestia_sudo_quiet test -f "$SUDOERS_FILE"; then
     ok "Sudoers drop-in created."
 fi
 
-# Initial sync
 if caelestia_sudo "$SYNC_SCRIPT"; then
     ok "Initial sync complete."
 else
     warn "Initial sync had warnings (non-fatal)."
+    ALL_OK=false
 fi
 
-ok "SDDM theme installed."
+if [[ "$ALL_OK" == "true" ]]; then
+    ok "SDDM theme installed."
+else
+    warn "SDDM theme installed with warnings. Review the output above."
+fi
