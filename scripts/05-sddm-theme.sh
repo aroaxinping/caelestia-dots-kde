@@ -93,11 +93,20 @@ caelestia_sudo cp "$SRC_DIR/sync.sh" "$INSTALL_DIR/scripts/"
 caelestia_sudo mkdir -p "$INSTALL_DIR/assets/google-sans-flex"
 if [[ -f "$FONT_SOURCE" ]]; then
     caelestia_sudo cp "$FONT_SOURCE" "$INSTALL_DIR/assets/google-sans-flex/GoogleSansFlex.ttf"
+else
+    warn "GoogleSansFlex.ttf not found at $FONT_SOURCE, theme text may not render correctly."
+    ALL_OK=false
 fi
 
-if [[ "$VARIANT" == "mini" && -d "$SRC_DIR/themes/full/components/shapes" ]]; then
-    caelestia_sudo mkdir -p "$INSTALL_DIR/components/shapes"
-    caelestia_sudo cp -r "$SRC_DIR/themes/full/components/shapes"/* "$INSTALL_DIR/components/shapes/"
+# mini reuses full's shape components (coupled by design, keep in sync)
+if [[ "$VARIANT" == "mini" ]]; then
+    if [[ -d "$SRC_DIR/themes/full/components/shapes" ]]; then
+        caelestia_sudo mkdir -p "$INSTALL_DIR/components/shapes"
+        caelestia_sudo cp -r "$SRC_DIR/themes/full/components/shapes"/* "$INSTALL_DIR/components/shapes/"
+    else
+        warn "Shape components not found at $SRC_DIR/themes/full/components/shapes, mini theme will not render correctly."
+        ALL_OK=false
+    fi
 fi
 
 caelestia_sudo find "$INSTALL_DIR" -type d -exec chmod 755 {} +
@@ -123,7 +132,6 @@ ok "SDDM config drop-in created."
 
 POSTHOOK_CMD="sudo $SYNC_SCRIPT --posthook"
 CLI_JSON="$HOME/.config/caelestia/cli.json"
-POSTHOOK_OK=false
 
 if command -v python3 &>/dev/null; then
     python3 - "$CLI_JSON" "$POSTHOOK_CMD" <<'PYEOF'
@@ -137,7 +145,9 @@ for section in ("wallpaper", "theme"):
     if section not in config:
         config[section] = {}
     existing = config[section].get("postHook", "")
-    if existing and hook_cmd not in existing:
+    if hook_cmd in existing:
+        pass
+    elif existing:
         config[section]["postHook"] = existing + " && " + hook_cmd
     else:
         config[section]["postHook"] = hook_cmd
@@ -146,7 +156,6 @@ with open(cli_path, "w") as f:
     json.dump(config, f, indent=4)
 PYEOF
     ok "Posthook registered in cli.json"
-    POSTHOOK_OK=true
 else
     warn "python3 not found, skipping posthook registration. Wallpaper and color changes will not auto-sync to SDDM."
     ALL_OK=false
@@ -170,4 +179,5 @@ if [[ "$ALL_OK" == "true" ]]; then
     ok "SDDM theme installed."
 else
     warn "SDDM theme installed with warnings. Review the output above."
+    exit 1
 fi
