@@ -34,6 +34,13 @@ PageBase {
         }
     ]
 
+    readonly property list<MenuItem> useGlobalItems: [
+        MenuItem {
+            text: qsTr("Use global position")
+            activeText: root.itemForPosition(GlobalConfig.bar.position).activeText
+        }
+    ]
+
     function itemForPosition(pos: string): MenuItem {
         for (let i = 0; i < root.positionItems.length; i++) {
             if (root.positionItems[i].value === pos)
@@ -87,14 +94,7 @@ PageBase {
             subtext: qsTr("Screen edge to place the bar on")
             active: root.itemForPosition(GlobalConfig.bar.position)
             menuItems: root.positionItems
-            onSelected: item => {
-                GlobalConfig.bar.position = item.value;
-                for (let i = 0; i < Screens.screens.length; i++) {
-                    let sConf = GlobalConfig.forScreen(Screens.screens[i].name);
-                    if (sConf) sConf.bar.resetOption("position");
-                }
-                GlobalConfig.save();
-            }
+            onSelected: item => GlobalConfig.bar.position = item.value
         }
 
         ToggleRow {
@@ -138,11 +138,14 @@ PageBase {
                 label: modelData.name
                 subtext: hasOverride ? qsTr("Overridden for this monitor") : qsTr("Using global position")
                 active: root.itemForPosition(screenConfig ? screenConfig.bar.position : GlobalConfig.bar.position)
-                menuItems: root.positionItems
+                menuItems: hasOverride ? root.positionItems.concat(root.useGlobalItems) : root.positionItems
                 onSelected: item => {
                     if (!screenConfig)
                         return;
-                    screenConfig.bar.position = item.value;
+                    if (item === root.useGlobalItems[0])
+                        screenConfig.bar.resetOption("position");
+                    else
+                        screenConfig.bar.position = item.value;
                 }
             }
         }
