@@ -2,9 +2,9 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import Caelestia.Config
 import qs.components.controls
+import qs.services
 import qs.utils
 import qs.modules.nexus.common
 
@@ -33,6 +33,14 @@ PageBase {
             text: qsTr("Right")
         }
     ]
+
+    function itemForPosition(pos: string): MenuItem {
+        for (let i = 0; i < root.positionItems.length; i++) {
+            if (root.positionItems[i].value === pos)
+                return root.positionItems[i];
+        }
+        return root.positionItems[0];
+    }
 
     title: qsTr("Taskbar")
     isSubPage: true
@@ -77,54 +85,15 @@ PageBase {
             Layout.fillWidth: true
             label: qsTr("Position")
             subtext: qsTr("Screen edge to place the bar on")
-            active: {
-                for (let i = 0; i < positionItems.length; i++) {
-                    if (positionItems[i].value === GlobalConfig.bar.position)
-                        return positionItems[i];
-                }
-                return positionItems[0];
-            }
-            menuItems: positionItems
+            active: root.itemForPosition(GlobalConfig.bar.position)
+            menuItems: root.positionItems
             onSelected: item => {
                 GlobalConfig.bar.position = item.value;
-                for (let i = 0; i < Quickshell.screens.length; i++) {
-                    let sConf = GlobalConfig.forScreen(Quickshell.screens[i].name);
+                for (let i = 0; i < Screens.screens.length; i++) {
+                    let sConf = GlobalConfig.forScreen(Screens.screens[i].name);
                     if (sConf) sConf.bar.resetOption("position");
                 }
-            }
-        }
-
-        SectionHeader {
-            visible: Quickshell.screens.length > 1
-            text: qsTr("Per-monitor position")
-        }
-
-        Repeater {
-            model: Quickshell.screens.length > 1 ? Quickshell.screens : []
-
-            SelectRow {
-                required property var modelData
-
-                readonly property string screenName: modelData.name
-                readonly property var screenConfig: GlobalConfig.forScreen(screenName)
-                readonly property bool hasOverride: screenConfig ? screenConfig.bar.position !== GlobalConfig.bar.position : false
-
-                Layout.fillWidth: true
-                label: screenName
-                subtext: hasOverride ? qsTr("Overridden for this monitor") : qsTr("Using global position")
-                active: {
-                    const pos = screenConfig ? screenConfig.bar.position : GlobalConfig.bar.position;
-                    for (let i = 0; i < root.positionItems.length; i++) {
-                        if (root.positionItems[i].value === pos)
-                            return root.positionItems[i];
-                    }
-                    return root.positionItems[0];
-                }
-                menuItems: root.positionItems
-                onSelected: item => {
-                    if (screenConfig)
-                        screenConfig.bar.position = item.value;
-                }
+                GlobalConfig.save();
             }
         }
 
@@ -144,6 +113,38 @@ PageBase {
             to: 200
             stepSize: 5
             onMoved: v => GlobalConfig.bar.dragThreshold = v
+        }
+
+        SectionHeader {
+            visible: Screens.screens.length > 1
+            text: qsTr("Per-monitor position")
+        }
+
+        Repeater {
+            id: perMonitorRepeater
+
+            model: Screens.screens.length > 1 ? Screens.screens : []
+
+            SelectRow {
+                required property var modelData
+                required property int index
+
+                readonly property var screenConfig: GlobalConfig.forScreen(modelData.name)
+                readonly property bool hasOverride: screenConfig ? screenConfig.bar.isOverride("position") : false
+
+                first: index === 0
+                last: index === perMonitorRepeater.count - 1
+                Layout.fillWidth: true
+                label: modelData.name
+                subtext: hasOverride ? qsTr("Overridden for this monitor") : qsTr("Using global position")
+                active: root.itemForPosition(screenConfig ? screenConfig.bar.position : GlobalConfig.bar.position)
+                menuItems: root.positionItems
+                onSelected: item => {
+                    if (!screenConfig)
+                        return;
+                    screenConfig.bar.position = item.value;
+                }
+            }
         }
 
         SectionHeader {
