@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Caelestia.Config
 import qs.components.controls
 import qs.utils
@@ -83,7 +85,47 @@ PageBase {
                 return positionItems[0];
             }
             menuItems: positionItems
-            onSelected: item => GlobalConfig.bar.position = item.value
+            onSelected: item => {
+                GlobalConfig.bar.position = item.value;
+                for (let i = 0; i < Quickshell.screens.length; i++) {
+                    let sConf = GlobalConfig.forScreen(Quickshell.screens[i].name);
+                    if (sConf) sConf.bar.resetOption("position");
+                }
+            }
+        }
+
+        SectionHeader {
+            visible: Quickshell.screens.length > 1
+            text: qsTr("Per-monitor position")
+        }
+
+        Repeater {
+            model: Quickshell.screens.length > 1 ? Quickshell.screens : []
+
+            SelectRow {
+                required property var modelData
+
+                readonly property string screenName: modelData.name
+                readonly property var screenConfig: GlobalConfig.forScreen(screenName)
+                readonly property bool hasOverride: screenConfig ? screenConfig.bar.position !== GlobalConfig.bar.position : false
+
+                Layout.fillWidth: true
+                label: screenName
+                subtext: hasOverride ? qsTr("Overridden for this monitor") : qsTr("Using global position")
+                active: {
+                    const pos = screenConfig ? screenConfig.bar.position : GlobalConfig.bar.position;
+                    for (let i = 0; i < root.positionItems.length; i++) {
+                        if (root.positionItems[i].value === pos)
+                            return root.positionItems[i];
+                    }
+                    return root.positionItems[0];
+                }
+                menuItems: root.positionItems
+                onSelected: item => {
+                    if (screenConfig)
+                        screenConfig.bar.position = item.value;
+                }
+            }
         }
 
         ToggleRow {
